@@ -83,13 +83,32 @@
                 <p class="text-xs text-emerald-600 font-bold uppercase tracking-widest mb-8">SMAN 1 Parung</p>
 
                 <!-- TAB SWITCH PERAN -->
-                <div class="w-full bg-slate-100 p-1.5 rounded-2xl flex mb-6 text-xs font-bold shadow-inner">
+                <div class="w-full bg-slate-100 p-1.5 rounded-2xl flex mb-4 text-xs font-bold shadow-inner">
                     <button type="button" onclick="switchRole('siswa')" id="btn-role-siswa" class="flex-1 py-3 rounded-xl text-center transition-all duration-300 bg-white text-emerald-700 shadow-md">
                         <i class="fa-solid fa-graduation-cap mr-1.5"></i> Siswa
                     </button>
                     <button type="button" onclick="switchRole('walikelas')" id="btn-role-walikelas" class="flex-1 py-3 rounded-xl text-center transition-all duration-300 text-slate-500 hover:text-slate-800">
                         <i class="fa-solid fa-chalkboard-user mr-1.5"></i> Wali Kelas
                     </button>
+                </div>
+
+                <!-- PILIHAN MODE SISTEM (OFFLINE / ONLINE REALTIME) -->
+                <div class="w-full bg-slate-100 p-1 rounded-2xl flex mb-4 text-[11px] font-bold shadow-inner">
+                    <button type="button" onclick="setSystemMode('offline')" id="btn-mode-offline" class="flex-1 py-2 rounded-xl text-center transition-all bg-white text-slate-700 shadow-sm">
+                        <i class="fa-solid fa-plane-slash mr-1"></i> Demo Offline
+                    </button>
+                    <button type="button" onclick="setSystemMode('online')" id="btn-mode-online" class="flex-1 py-2 rounded-xl text-center transition-all text-slate-500 hover:text-slate-850">
+                        <i class="fa-solid fa-wifi mr-1"></i> Online Realtime
+                    </button>
+                </div>
+
+                <!-- FORM INPUT URL GOOGLE SCRIPT YANG DINAMIS -->
+                <div id="container-input-url" class="hidden w-full bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl mb-4 space-y-1.5">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">URL Google Apps Script</label>
+                        <span class="text-[9px] text-emerald-600 bg-white px-2.5 py-0.5 rounded-full font-bold">Terhubung Realtime</span>
+                    </div>
+                    <input type="text" id="login-script-url" oninput="syncScriptUrlFromLogin()" placeholder="https://script.google.com/macros/s/AKfycbxVbkDUXcDsfy58-NYGO6EZrpfflT8O-_hg7d8o7hYsXncaj2s8XjW83hl3VAMyKyeW/exec" class="w-full px-3.5 py-2.5 bg-white border border-emerald-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-[10px] font-mono shadow-sm">
                 </div>
 
                 <!-- FORM INPUT LOGIN -->
@@ -904,9 +923,47 @@
             poin: []
         };
 
-        // Memeriksa status URL Mocking
+        // Memeriksa status URL Mocking dan Mode Sistem terpilih
         function isMockUrl() {
+            const systemMode = localStorage.getItem('sigesit_system_mode') || 'offline';
+            if (systemMode === 'offline') return true;
             return !scriptUrl || scriptUrl.includes("MOCK_URL_REPLACE_THIS");
+        }
+
+        // Fungsi mengubah setelan Mode Sistem
+        function setSystemMode(mode) {
+            localStorage.setItem('sigesit_system_mode', mode);
+            const btnOffline = document.getElementById('btn-mode-offline');
+            const btnOnline = document.getElementById('btn-mode-online');
+            const containerUrl = document.getElementById('container-input-url');
+            
+            if (mode === 'online') {
+                if (btnOnline) btnOnline.className = "flex-1 py-2 rounded-xl text-center transition-all bg-emerald-600 text-white shadow-sm";
+                if (btnOffline) btnOffline.className = "flex-1 py-2 rounded-xl text-center transition-all text-slate-500 hover:text-slate-850";
+                if (containerUrl) containerUrl.classList.remove('hidden');
+                
+                // Isi input dengan URL yang tersimpan jika ada
+                const savedUrl = localStorage.getItem('sigesit_script_url');
+                if (savedUrl && savedUrl !== SCRIPT_URL) {
+                    scriptUrl = savedUrl;
+                    document.getElementById('login-script-url').value = savedUrl;
+                }
+            } else {
+                if (btnOffline) btnOffline.className = "flex-1 py-2 rounded-xl text-center transition-all bg-white text-slate-700 shadow-sm";
+                if (btnOnline) btnOnline.className = "flex-1 py-2 rounded-xl text-center transition-all text-slate-500 hover:text-slate-850";
+                if (containerUrl) containerUrl.classList.add('hidden');
+            }
+            updateIntegrationStatus();
+        }
+
+        // Sinkronisasi isian URL langsung dari kotak login
+        function syncScriptUrlFromLogin() {
+            const val = document.getElementById('login-script-url').value.trim();
+            if (val) {
+                scriptUrl = val;
+                localStorage.setItem('sigesit_script_url', val);
+                updateIntegrationStatus();
+            }
         }
 
         // LOAD INSTAN AWAL
@@ -924,6 +981,10 @@
             } else {
                 localDb = JSON.parse(storedLocal);
             }
+
+            // Atur inisialisasi switcher mode sistem
+            const savedMode = localStorage.getItem('sigesit_system_mode') || 'offline';
+            setSystemMode(savedMode);
 
             startClock();
             initLocationTracking();
@@ -984,6 +1045,11 @@
             
             scriptUrl = inputUrl;
             localStorage.setItem('sigesit_script_url', inputUrl);
+            
+            // Samakan isi input URL di halaman login depan
+            const loginInputUrl = document.getElementById('login-script-url');
+            if (loginInputUrl) loginInputUrl.value = inputUrl;
+
             updateIntegrationStatus();
             closeConfigModal();
             showToast("Setelan Web App disimpan! Menghubungkan database...");
@@ -995,7 +1061,13 @@
         function resetConfigUrl() {
             scriptUrl = SCRIPT_URL;
             localStorage.removeItem('sigesit_script_url');
+            localStorage.removeItem('sigesit_system_mode');
+            
+            const loginInputUrl = document.getElementById('login-script-url');
+            if (loginInputUrl) loginInputUrl.value = "";
+
             initializeLocalDatabaseWithDemoData();
+            setSystemMode('offline');
             updateIntegrationStatus();
             closeConfigModal();
             showToast("Mengembalikan ke setelan offline/bawaan.");
