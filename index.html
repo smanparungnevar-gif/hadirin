@@ -56,13 +56,21 @@
                     <p class="text-[10px] text-emerald-100">SMAN 1 Parung</p>
                 </div>
             </div>
-            <div id="status-koneksi-badge" class="text-[10px] bg-emerald-800 px-3 py-1 rounded-full text-emerald-100 font-bold flex items-center gap-1.5 transition-all">
+            <div id="status-koneksi-badge" onclick="openConfigModal()" class="cursor-pointer text-[10px] bg-emerald-800 px-3 py-1 rounded-full text-emerald-100 font-bold flex items-center gap-1.5 transition-all">
                 <i class="fa-solid fa-cloud"></i> Terhubung
             </div>
         </header>
 
-        <!-- 1. SCREEN LOGIN (Murni data Riil Spreadsheet) -->
+        <!-- 1. SCREEN LOGIN -->
         <div id="view-login" class="flex-1 flex flex-col justify-between p-6 bg-gradient-to-b from-emerald-50/50 to-white relative overflow-y-auto">
+            
+            <!-- TOMBOL SETTING URL ABSOLUTE -->
+            <div class="absolute top-4 right-4 z-50">
+                <button onclick="openConfigModal()" class="w-10 h-10 bg-white/80 hover:bg-white rounded-2xl flex items-center justify-center text-slate-600 shadow-md transition-all border border-slate-100" title="Atur Google Script URL">
+                    <i class="fa-solid fa-gear text-lg animate-spin-slow"></i>
+                </button>
+            </div>
+
             <div class="flex-1 flex flex-col justify-center items-center py-8">
                 <!-- Logo Sekolah -->
                 <div class="w-24 h-24 bg-white rounded-3xl p-3 shadow-xl flex items-center justify-center mb-6 border border-slate-50">
@@ -828,6 +836,37 @@
         </div>
     </div>
 
+    <!-- MODAL CONFIGURATION SETTING (UJI COBA & REALTIME SETUP) -->
+    <div id="config-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-link text-emerald-600"></i> Konfigurasi Google Script
+                </h3>
+                <button type="button" onclick="closeConfigModal()" class="text-slate-400 text-lg hover:text-slate-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-2 text-xs">
+                <p class="text-slate-500 leading-relaxed">Masukkan URL Web App dari Google Apps Script yang sudah Anda deploy untuk menghubungkan database secara realtime.</p>
+                <div>
+                    <label class="block font-bold text-slate-600 mb-1">URL Web App (Google Apps Script)</label>
+                    <input type="text" id="config-script-url" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-[11px]" placeholder="https://script.google.com/macros/s/.../exec">
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                <button onclick="resetConfigUrl()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs transition active:scale-95">
+                    Reset Default
+                </button>
+                <button onclick="saveConfigUrl()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition active:scale-95 shadow-md shadow-emerald-600/20">
+                    Simpan Setelan
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST NOTIFICATION -->
     <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-3 rounded-full text-xs shadow-xl flex items-center gap-2 max-w-xs text-center transition-all duration-300">
         <span id="toast-message">Notifikasi</span>
@@ -872,6 +911,20 @@
 
         // LOAD INSTAN AWAL
         window.onload = function() {
+            // Cek setelan URL tersimpan dari memori lokal browser
+            const savedUrl = localStorage.getItem('sigesit_script_url');
+            if (savedUrl) {
+                scriptUrl = savedUrl;
+            }
+            
+            // Inisialisasi database demo bawaan jika lokal masih kosong total (Mode Offline / Uji coba)
+            const storedLocal = localStorage.getItem('local_offline_db');
+            if (!storedLocal) {
+                initializeLocalDatabaseWithDemoData();
+            } else {
+                localDb = JSON.parse(storedLocal);
+            }
+
             startClock();
             initLocationTracking();
             populateTanggalOptions();
@@ -884,6 +937,69 @@
                 doPostLoginActions();
             }
         };
+
+        // Mengisi data tiruan bawaan (Siswa: 12345/0011223344, Wali: 98765/password123) untuk login instan secara offline
+        function initializeLocalDatabaseWithDemoData() {
+            const sampleDB = {
+                siswa: [
+                    { nis: "12345", nisn: "0011223344", nama: "Ahmad Dani", kelas: "XII MIPA 1", wali_kelas: "Irwan Hermawan, S.Pd", guru_wali: "Siti Rahmawati, M.Pd", foto: "", alamat_koordinat: `${SCHOOL_LAT},${SCHOOL_LNG}`, alamat_teks: "Jl. Parung Hijau No. 10", no_ortu: "628123456789" },
+                    { nis: "12346", nisn: "0011223345", nama: "Lina Marlina", kelas: "XII MIPA 1", wali_kelas: "Irwan Hermawan, S.Pd", guru_wali: "Siti Rahmawati, M.Pd", foto: "", alamat_koordinat: `${SCHOOL_LAT},${SCHOOL_LNG}`, alamat_teks: "Parung, Bogor", no_ortu: "" }
+                ],
+                walikelas: [
+                    { nip: "98765", username: "98765", password: "password123", nama: "Irwan Hermawan, S.Pd", kelas: "XII MIPA 1" }
+                ],
+                presensi: [],
+                izin: [],
+                poin: []
+            };
+            localStorage.setItem('local_offline_db', JSON.stringify(sampleDB));
+            localDb = sampleDB;
+        }
+
+        // MODAL CONFIGURATION ACTION HANDLERS
+        function openConfigModal() {
+            const modal = document.getElementById('config-modal');
+            const inputUrl = document.getElementById('config-script-url');
+            if (modal && inputUrl) {
+                inputUrl.value = scriptUrl.includes("MOCK_URL_REPLACE_THIS") ? "" : scriptUrl;
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function closeConfigModal() {
+            const modal = document.getElementById('config-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function saveConfigUrl() {
+            const inputUrl = document.getElementById('config-script-url').value.trim();
+            if (!inputUrl) {
+                showToast("URL tidak boleh kosong!");
+                return;
+            }
+            if (!inputUrl.startsWith("https://script.google.com/")) {
+                showToast("Format URL Google Script salah!");
+                return;
+            }
+            
+            scriptUrl = inputUrl;
+            localStorage.setItem('sigesit_script_url', inputUrl);
+            updateIntegrationStatus();
+            closeConfigModal();
+            showToast("Setelan Web App disimpan! Menghubungkan database...");
+            
+            // Re-fetch database menggunakan URL baru
+            fetchDatabaseState();
+        }
+
+        function resetConfigUrl() {
+            scriptUrl = SCRIPT_URL;
+            localStorage.removeItem('sigesit_script_url');
+            initializeLocalDatabaseWithDemoData();
+            updateIntegrationStatus();
+            closeConfigModal();
+            showToast("Mengembalikan ke setelan offline/bawaan.");
+        }
 
         function populateTanggalOptions() {
             const els = ['rekap-tanggal', 'rekap-poin-tanggal'];
@@ -906,11 +1022,11 @@
             const statusLabel = document.getElementById('status-koneksi-badge');
             if (statusLabel) {
                 if (isMockUrl()) {
-                    statusLabel.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Offline';
-                    statusLabel.className = "text-[10px] bg-amber-600 px-3 py-1 rounded-full text-white font-bold flex items-center gap-1.5";
+                    statusLabel.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Demo Offline';
+                    statusLabel.className = "text-[10px] bg-amber-600 px-3 py-1 rounded-full text-white font-bold flex items-center gap-1.5 cursor-pointer";
                 } else {
                     statusLabel.innerHTML = '<i class="fa-solid fa-cloud"></i> Online';
-                    statusLabel.className = "text-[10px] bg-emerald-800 px-3 py-1 rounded-full text-emerald-100 font-bold flex items-center gap-1.5";
+                    statusLabel.className = "text-[10px] bg-emerald-800 px-3 py-1 rounded-full text-emerald-100 font-bold flex items-center gap-1.5 cursor-pointer";
                 }
             }
         }
@@ -1057,31 +1173,27 @@
 
             if (isMockUrl()) {
                 // Skenario Offline / Sesi Simpanan Lokal
-                const storedLocal = localStorage.getItem('local_offline_db');
-                if (storedLocal) {
-                    const parsed = JSON.parse(storedLocal);
-                    if (role === 'siswa') {
-                        const siswaData = parsed.siswa ? parsed.siswa.find(s => s.nis === idInput && s.nisn === passInput) : null;
-                        if (siswaData) {
-                            currentSiswa = { ...siswaData, role: 'siswa' };
-                            localStorage.setItem('sigesit_active_user', JSON.stringify(currentSiswa));
-                            doPostLoginActions();
-                            showToast("Masuk Sesi Lokal!");
-                            return;
-                        }
-                    } else {
-                        // Wali kelas lokal
-                        const waliData = parsed.walikelas ? parsed.walikelas.find(w => (w.nip === idInput || w.username === idInput) && w.password === passInput) : null;
-                        if (waliData) {
-                            currentSiswa = { ...waliData, role: 'walikelas' };
-                            localStorage.setItem('sigesit_active_user', JSON.stringify(currentSiswa));
-                            doPostLoginActions();
-                            showToast("Masuk Sesi Lokal Wali!");
-                            return;
-                        }
+                if (role === 'siswa') {
+                    const siswaData = localDb.siswa ? localDb.siswa.find(s => s.nis === idInput && s.nisn === passInput) : null;
+                    if (siswaData) {
+                        currentSiswa = { ...siswaData, role: 'siswa' };
+                        localStorage.setItem('sigesit_active_user', JSON.stringify(currentSiswa));
+                        doPostLoginActions();
+                        showToast("Masuk Sesi Lokal!");
+                        return;
+                    }
+                } else {
+                    // Wali kelas lokal
+                    const waliData = localDb.walikelas ? localDb.walikelas.find(w => (w.nip === idInput || w.username === idInput) && w.password === passInput) : null;
+                    if (waliData) {
+                        currentSiswa = { ...waliData, role: 'walikelas' };
+                        localStorage.setItem('sigesit_active_user', JSON.stringify(currentSiswa));
+                        doPostLoginActions();
+                        showToast("Masuk Sesi Lokal Wali!");
+                        return;
                     }
                 }
-                showToast("Mode Offline: Harap hubungkan online sekali untuk sinkronisasi database.");
+                showToast("NIS/NIP atau Password salah untuk data demo!");
                 return;
             }
 
@@ -1105,7 +1217,7 @@
                     }
                 })
                 .catch(() => {
-                    showToast("Koneksi bermasalah. Mencoba kredensial lokal...");
+                    showToast("Gagal terhubung ke Google Apps Script.");
                 });
         }
 
@@ -1472,6 +1584,7 @@
 
         function savePresensiToState(record) {
             localDb.presensi.push(record);
+            localStorage.setItem('local_offline_db', JSON.stringify(localDb));
             updateHomePresensiUI();
             renderLivePresensiKelas();
         }
@@ -1790,6 +1903,7 @@
             };
 
             localDb.poin.push(record);
+            localStorage.setItem('local_offline_db', JSON.stringify(localDb));
             closePoinModal();
             showToast("Catatan poin karakter tersimpan!");
 
@@ -1868,6 +1982,7 @@
             const match = localDb.izin.find(i => i.nis === studentNis && (i.created_at === idKey || i.tanggal === idKey));
             if (match) {
                 match.status = status;
+                localStorage.setItem('local_offline_db', JSON.stringify(localDb));
                 showToast(`Izin berhasil ${status}!`);
                 renderWaliIzinApprovalList();
 
@@ -2081,6 +2196,7 @@
 
         function saveIzinToState(record) {
             localDb.izin.push(record);
+            localStorage.setItem('local_offline_db', JSON.stringify(localDb));
             showToast("Pengajuan izin berhasil terkirim!");
             
             // Reset forms
@@ -2488,6 +2604,14 @@
             currentSiswa.alamat_teks = AlamatText;
             localStorage.setItem('sigesit_active_user', JSON.stringify(currentSiswa));
 
+            // Jika offline, simpan di database lokal
+            const targetInLocal = localDb.siswa.find(s => s.nis === currentSiswa.nis);
+            if (targetInLocal) {
+                targetInLocal.alamat_koordinat = coordStr;
+                targetInLocal.alamat_teks = AlamatText;
+                localStorage.setItem('local_offline_db', JSON.stringify(localDb));
+            }
+
             if (isMockUrl()) {
                 showToast("Alamat disimpan sementara (Lokal)!");
                 return;
@@ -2537,6 +2661,13 @@
                 currentSiswa.foto = base64;
                 localStorage.setItem('sigesit_active_user', JSON.stringify(currentSiswa));
 
+                // Jika offline, perbarui list lokal
+                const targetInLocal = localDb.siswa.find(s => s.nis === currentSiswa.nis);
+                if (targetInLocal) {
+                    targetInLocal.foto = base64;
+                    localStorage.setItem('local_offline_db', JSON.stringify(localDb));
+                }
+
                 if (isMockUrl()) {
                     showToast("Foto profil tersimpan!");
                     return;
@@ -2556,27 +2687,7 @@
         // SYNC REALTIME DATABASE STATE
         function fetchDatabaseState() {
             if (isMockUrl()) {
-                // Mempersiapkan tiruan database lokal jika server Google belum di-deploy
-                const initialLocal = localStorage.getItem('local_offline_db');
-                if (!initialLocal) {
-                    const sampleDB = {
-                        siswa: [
-                            { nis: "12345", nisn: "0011223344", nama: "Ahmad Dani", kelas: "XII MIPA 1", wali_kelas: "Irwan Hermawan, S.Pd", guru_wali: "Siti Rahmawati, M.Pd", foto: "", alamat_koordinat: `${SCHOOL_LAT},${SCHOOL_LNG}`, alamat_teks: "Jl. Parung Hijau", no_ortu: "628123456789" },
-                            { nis: "12346", nisn: "0011223345", nama: "Lina Marlina", kelas: "XII MIPA 1", wali_kelas: "Irwan Hermawan, S.Pd", guru_wali: "Siti Rahmawati, M.Pd", foto: "", alamat_koordinat: `${SCHOOL_LAT},${SCHOOL_LNG}`, alamat_teks: "Parung", no_ortu: "" }
-                        ],
-                        walikelas: [
-                            { nip: "98765", username: "98765", password: "password123", nama: "Irwan Hermawan, S.Pd", kelas: "XII MIPA 1" }
-                        ],
-                        presensi: [],
-                        izin: [],
-                        poin: []
-                    };
-                    localStorage.setItem('local_offline_db', JSON.stringify(sampleDB));
-                    localDb = sampleDB;
-                } else {
-                    localDb = JSON.parse(initialLocal);
-                }
-
+                // Gunakan tiruan database lokal yang sudah diinisialisasi
                 updateHomePresensiUI();
                 renderWaliMonitoringPresensi();
                 renderWaliIzinApprovalList();
@@ -2596,7 +2707,7 @@
                         localDb.izin = data.izin || [];
                         localDb.poin = data.poin || [];
 
-                        // Backup Offline
+                        // Backup Offline ke penyimpanan browser
                         localStorage.setItem('local_offline_db', JSON.stringify(localDb));
 
                         updateHomePresensiUI();
@@ -2609,7 +2720,7 @@
                     }
                 })
                 .catch(() => {
-                    // Fallback Offline Sesi
+                    // Fallback ke penyimpanan browser jika koneksi gagal
                     const backup = localStorage.getItem('local_offline_db');
                     if (backup) {
                         localDb = JSON.parse(backup);
