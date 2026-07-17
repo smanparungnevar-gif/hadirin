@@ -109,7 +109,7 @@
                         <label class="block text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">URL Google Apps Script</label>
                         <span class="text-[9px] text-emerald-600 bg-white px-2.5 py-0.5 rounded-full font-bold">Terhubung Realtime</span>
                     </div>
-                    <input type="text" id="login-script-url" oninput="syncScriptUrlFromLogin()" placeholder="https://script.google.com/macros/s/AKfycbxVbkDUXcDsfy58-NYGO6EZrpfflT8O-_hg7d8o7hYsXncaj2s8XjW83hl3VAMyKyeW/exec" class="w-full px-3.5 py-2.5 bg-white border border-emerald-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-[10px] font-mono shadow-sm">
+                    <input type="text" id="login-script-url" oninput="syncScriptUrlFromLogin()" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 bg-white border border-emerald-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-[10px] font-mono shadow-sm">
                 </div>
 
                 <!-- FORM INPUT LOGIN -->
@@ -403,7 +403,7 @@
             <!-- TAB 2: RIWAYAT PENGAJUAN -->
             <div id="tab-content-riwayat" class="hidden space-y-4">
                 <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 space-y-3">
-                    <h4 class="text-xs font-extrabold text-slate-450 uppercase tracking-widest">Filter Periode & Status</h4>
+                    <h4 class="text-xs font-extrabold text-slate-455 uppercase tracking-widest">Filter Periode & Status</h4>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] font-bold text-slate-500">Pilih Tahun</label>
@@ -564,7 +564,7 @@
 
             <!-- Poin Karakter History -->
             <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 space-y-3">
-                <h4 class="text-xs font-bold text-slate-450 uppercase tracking-wider flex items-center gap-1.5">
+                <h4 class="text-xs font-bold text-slate-455 uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-shield-halved text-rose-500"></i> Rekap Pelanggaran & Prestasi
                 </h4>
                 <div class="grid grid-cols-3 gap-2">
@@ -1003,7 +1003,7 @@
     </div>
 
     <script>
-        // URL Google Apps Script
+        // URL Google Apps Script Default
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVbkDUXcDsfy58-NYGO6EZrpfflT8O-_hg7d8o7hYsXncaj2s8XjW83hl3VAMyKyeW/exec";
         
         // Konfigurasi Geofencing SMAN 1 Parung
@@ -1019,13 +1019,18 @@
         let currentDistance = null;
         let map = null;
         let userMarker = null;
+        
+        // SINKRONISASI KEDUA VARIABEL FILTER UNTUK MENCEGAH REFERENCEERROR SECARA TUNTAS
         let currentIzinFilter = 'Semua';
+        let statusIzinFilterActive = 'Semua';
+        
         let dispenMap = null;
         let dispenMarker = null;
         let dispenCoords = "";
         
         let localDb = {
             siswa: [],
+            walikelas: [],
             presensi: [],
             izin: [],
             poin: [],
@@ -1112,7 +1117,6 @@
                 izin: [],
                 poin: [],
                 nilai: [
-                    // Kolom B: judul, C: mapel, D: kelas, E: nama, F: harian, G: uts, H: uas, I: nilai_akhir, J: kkm
                     { id: "1", judul: "PH 1", mapel: "Matematika", kelas: "XII MIPA 1", nama: "Ahmad Dani", harian: 85, uts: 80, uas: 90, nilai_akhir: 85, kkm: 75 },
                     { id: "2", judul: "PTS", mapel: "Matematika", kelas: "XII MIPA 1", nama: "Ahmad Dani", harian: 88, uts: 85, uas: 90, nilai_akhir: 88, kkm: 75 },
                     { id: "3", judul: "PAS", mapel: "Matematika", kelas: "XII MIPA 1", nama: "Ahmad Dani", harian: 90, uts: 88, uas: 92, nilai_akhir: 90, kkm: 75 },
@@ -1129,7 +1133,6 @@
             localDb = sampleDB;
         }
 
-        // FUNGSI UPDATE INTEGRATION STATUS
         function updateIntegrationStatus() {
             const statusLabel = document.getElementById('status-koneksi-badge');
             if (statusLabel) {
@@ -1143,7 +1146,6 @@
             }
         }
 
-        // FUNGSI PENYARING PILIHAN TANGGAL REKAP YANG DIPERLUKAN
         function populateTanggalOptions() {
             const els = ['rekap-tanggal', 'rekap-poin-tanggal'];
             els.forEach(id => {
@@ -1294,7 +1296,7 @@
                         currentSiswa = { ...siswaData, role: 'siswa' };
                         localStorage.setItem('sigesit_active_user', JSON.stringify(currentSiswa));
                         doPostLoginActions();
-                        showToast("Masuk Sesi Lokal!");
+                        showToast("Masuk Sesi Lokal Siswa!");
                         return;
                     }
                 } else {
@@ -1313,11 +1315,13 @@
 
             showToast("Memvalidasi akun...");
             const actionTarget = (role === 'walikelas') ? 'loginWali' : 'getSiswa';
+            
+            // Menyusun parameter query string secara dinamis
             const params = (role === 'walikelas') 
-                ? `action=${actionTarget}&identifier=${encodeURIComponent(idInput)}&password=${encodeURIComponent(passInput)}`
-                : `action=${actionTarget}&nis=${encodeURIComponent(idInput)}&nisn=${encodeURIComponent(passInput)}`;
+                ? `action=loginWali&identifier=${encodeURIComponent(idInput)}&password=${encodeURIComponent(passInput)}`
+                : `action=getSiswa&nis=${encodeURIComponent(idInput)}&nisn=${encodeURIComponent(passInput)}`;
 
-            fetch(`${scriptUrl}?action=${actionTarget}&${params}`)
+            fetch(`${scriptUrl}?${params}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.success) {
@@ -1978,7 +1982,7 @@
                                 <span class="block text-[8px] text-slate-400 font-bold uppercase">Nilai Akhir</span>
                                 <span class="font-extrabold px-2 py-0.5 rounded-md ${statusClass}">${nilaiAkhir}</span>
                             </div>
-                            <button onclick="openEditNilaiModal('${murid.nama}', '${selectedMapel}', '${selectedJudul}')" class="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-650 rounded-xl transition-all" title="Edit Nilai">
+                            <button onclick="openEditNilaiModal('${murid.nama}', '${selectedMapel}', '${selectedJudul}')" class="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-655 rounded-xl transition-all" title="Edit Nilai">
                                 <i class="fa-solid fa-pen-to-square text-xs"></i>
                             </button>
                         </div>
@@ -2042,7 +2046,7 @@
                             </div>
                             <div class="border-l border-slate-200 font-bold">
                                 <span class="block text-[8px] uppercase text-indigo-500 font-bold">Akhir</span>
-                                <span class="text-indigo-650">${nilaiAkhir} (KKM ${kkm})</span>
+                                <span class="text-indigo-655">${nilaiAkhir} (KKM ${kkm})</span>
                             </div>
                         </div>
                     </div>
@@ -2215,8 +2219,6 @@
                 }).catch(() => console.log("Gagal sync nilai ke Sheets."));
             }
         }
-
-        // --- END SISTEM NILAI ---
 
         function openInputPoinModal(nis, nama) {
             const modal = document.getElementById('modal-point-input');
@@ -2542,6 +2544,7 @@
 
         function setStatusIzinFilter(status) {
             currentIzinFilter = status;
+            statusIzinFilterActive = status;
             
             // Perbarui class tombol agar memberikan umpan balik visual yang sesuai dengan status aktif
             const btnSemua = document.getElementById('f-status-semua');
@@ -2571,9 +2574,10 @@
                 return parts[0] === thn && (bln === 'Semua' || parts[1] === bln);
             });
 
-            // Menggunakan variabel global currentIzinFilter yang sudah didefinisikan secara konsisten
-            if (currentIzinFilter !== 'Semua') {
-                filtered = filtered.filter(i => i.status === currentIzinFilter);
+            const activeFilter = (typeof statusIzinFilterActive !== 'undefined') ? statusIzinFilterActive : currentIzinFilter;
+
+            if (activeFilter !== 'Semua') {
+                filtered = filtered.filter(i => i.status === activeFilter);
             }
 
             if (filtered.length === 0) {
@@ -2996,6 +3000,57 @@
             } else {
                 dispenMapContainer.classList.add('hidden');
             }
+        }
+
+        // CONFIG MODAL SYSTEM CONTROL
+        function openConfigModal() {
+            document.getElementById('config-modal').classList.remove('hidden');
+            document.getElementById('config-script-url').value = scriptUrl;
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
+
+        function resetConfigUrl() {
+            scriptUrl = SCRIPT_URL;
+            localStorage.removeItem('sigesit_script_url');
+            document.getElementById('config-script-url').value = SCRIPT_URL;
+            showToast("URL dikembalikan ke default.");
+            updateIntegrationStatus();
+        }
+
+        function saveConfigUrl() {
+            const val = document.getElementById('config-script-url').value.trim();
+            if (val) {
+                scriptUrl = val;
+                localStorage.setItem('sigesit_script_url', val);
+                showToast("URL kustom disimpan!");
+                closeConfigModal();
+                updateIntegrationStatus();
+                fetchDatabaseState();
+            } else {
+                showToast("URL tidak boleh kosong!");
+            }
+        }
+
+        function renderGuruWaliMonitoring() {
+            const body = document.getElementById('table-guru-wali-body');
+            if (!body || !currentSiswa) return;
+            const targetKelas = currentSiswa.kelas;
+            const muridKelas = localDb.siswa.filter(s => s.kelas === targetKelas);
+
+            if (muridKelas.length === 0) {
+                body.innerHTML = `<tr><td colspan="2" class="text-center py-6 text-slate-400">Tidak ada siswa terdaftar.</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = muridKelas.map(m => `
+                <tr class="border-b border-slate-50 hover:bg-slate-50/50">
+                    <td class="py-3 px-4 font-bold text-slate-700">${m.nama}</td>
+                    <td class="py-3 px-4 font-semibold text-indigo-600">${m.guru_wali || 'Belum Ditunjuk'}</td>
+                </tr>
+            `).join('');
         }
     </script>
 </body>
