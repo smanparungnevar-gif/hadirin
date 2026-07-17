@@ -2316,9 +2316,14 @@
             const container = document.getElementById('wali-izin-list-container');
             if (!container || !currentSiswa) return;
             const targetKelas = currentSiswa.kelas;
-            const waitingIzin = localDb.izin.filter(i => {
-                const murid = localDb.siswa.find(s => s.nis === i.nis);
-                return murid && murid.kelas === targetKelas && i.status === 'Menunggu';
+            
+            // Map items dengan indeks aslinya di localDb.izin agar pencocokan 100% akurat
+            const waitingIzin = [];
+            localDb.izin.forEach((item, index) => {
+                const murid = localDb.siswa.find(s => s.nis === item.nis);
+                if (murid && murid.kelas === targetKelas && item.status === 'Menunggu') {
+                    waitingIzin.push({ item, index });
+                }
             });
 
             if (waitingIzin.length === 0) {
@@ -2326,7 +2331,7 @@
                 return;
             }
 
-            container.innerHTML = waitingIzin.map(item => {
+            container.innerHTML = waitingIzin.map(({ item, index }) => {
                 const murid = localDb.siswa.find(s => s.nis === item.nis);
                 return `
                     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2.5 text-xs">
@@ -2343,16 +2348,16 @@
                             ${item.waktu && item.waktu !== '-' ? '<span><i class="fa-regular fa-clock"></i> Jam: ' + item.waktu + '</span>' : ''}
                         </div>
                         <div class="flex gap-2 pt-1">
-                            <button onclick="approveOrRejectWaliIzin('${item.created_at || item.tanggal}', 'Disetujui', '${item.nis}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-[11px]">Setujui</button>
-                            <button onclick="approveOrRejectWaliIzin('${item.created_at || item.tanggal}', 'Ditolak', '${item.nis}')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2.5 rounded-xl transition text-[11px] border border-rose-100">Tolak</button>
+                            <button onclick="approveOrRejectWaliIzin(${index}, 'Disetujui')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-[11px]">Setujui</button>
+                            <button onclick="approveOrRejectWaliIzin(${index}, 'Ditolak')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2.5 rounded-xl transition text-[11px] border border-rose-100">Tolak</button>
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
-        function approveOrRejectWaliIzin(idKey, status, studentNis) {
-            const match = localDb.izin.find(i => i.nis === studentNis && (i.created_at === idKey || i.tanggal === idKey));
+        function approveOrRejectWaliIzin(index, status) {
+            const match = localDb.izin[index];
             if (match) {
                 match.status = status;
                 localStorage.setItem('local_offline_db', JSON.stringify(localDb));
@@ -2362,12 +2367,14 @@
                     fetch(`${scriptUrl}?action=updateStatusIzin`, {
                         method: 'POST',
                         body: JSON.stringify({
-                            idKey: idKey,
-                            nis: studentNis,
+                            idKey: match.created_at || match.tanggal,
+                            nis: match.nis,
                             status: status
                         })
                     }).catch(() => console.log("Gagal sync status izin."));
                 }
+            } else {
+                showToast("Data izin tidak ditemukan.");
             }
         }
 
