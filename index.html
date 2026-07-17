@@ -109,7 +109,7 @@
                         <label class="block text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">URL Google Apps Script</label>
                         <span class="text-[9px] text-emerald-600 bg-white px-2.5 py-0.5 rounded-full font-bold">Terhubung Realtime</span>
                     </div>
-                    <input type="text" id="login-script-url" oninput="syncScriptUrlFromLogin()" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 bg-white border border-emerald-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-[10px] font-mono shadow-sm">
+                    <input type="text" id="login-script-url" oninput="syncScriptUrlFromLogin()" placeholder="https://script.google.com/macros/s/AKfycbxVbkDUXcDsfy58-NYGO6EZrpfflT8O-_hg7d8o7hYsXncaj2s8XjW83hl3VAMyKyeW/exec" class="w-full px-3.5 py-2.5 bg-white border border-emerald-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-[10px] font-mono shadow-sm">
                 </div>
 
                 <!-- FORM INPUT LOGIN -->
@@ -982,7 +982,7 @@
                 <p class="text-slate-500 leading-relaxed">Masukkan URL Web App dari Google Apps Script yang sudah Anda deploy.</p>
                 <div>
                     <label class="block font-bold text-slate-600 mb-1">URL Web App (Google Apps Script)</label>
-                    <input type="text" id="config-script-url" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-[11px]" placeholder="https://script.google.com/macros/s/AKfycbxVbkDUXcDsfy58-NYGO6EZrpfflT8O-_hg7d8o7hYsXncaj2s8XjW83hl3VAMyKyeW/exec">
+                    <input type="text" id="config-script-url" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-[11px]" placeholder="https://script.google.com/macros/s/.../exec">
                 </div>
             </div>
             
@@ -2540,6 +2540,23 @@
             switchIzinTab('riwayat');
         }
 
+        function setStatusIzinFilter(status) {
+            currentIzinFilter = status;
+            
+            // Perbarui class tombol agar memberikan umpan balik visual yang sesuai dengan status aktif
+            const btnSemua = document.getElementById('f-status-semua');
+            const btnMenunggu = document.getElementById('f-status-menunggu');
+            const btnDisetujui = document.getElementById('f-status-disetujui');
+            const btnDitolak = document.getElementById('f-status-ditolak');
+            
+            if (btnSemua) btnSemua.className = "flex-1 py-1.5 text-center rounded-xl " + (status === 'Semua' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-550 hover:text-slate-800');
+            if (btnMenunggu) btnMenunggu.className = "flex-1 py-1.5 text-center rounded-xl " + (status === 'Menunggu' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-550 hover:text-slate-800');
+            if (btnDisetujui) btnDisetujui.className = "flex-1 py-1.5 text-center rounded-xl " + (status === 'Disetujui' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-550 hover:text-slate-800');
+            if (btnDitolak) btnDitolak.className = "flex-1 py-1.5 text-center rounded-xl " + (status === 'Ditolak' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-550 hover:text-slate-800');
+            
+            renderRiwayatIzin();
+        }
+
         function renderRiwayatIzin() {
             const container = document.getElementById('izin-list-container');
             if (!container || !currentSiswa) return;
@@ -2554,8 +2571,9 @@
                 return parts[0] === thn && (bln === 'Semua' || parts[1] === bln);
             });
 
-            if (statusIzinFilterActive !== 'Semua') {
-                filtered = filtered.filter(i => i.status === statusIzinFilterActive);
+            // Menggunakan variabel global currentIzinFilter yang sudah didefinisikan secara konsisten
+            if (currentIzinFilter !== 'Semua') {
+                filtered = filtered.filter(i => i.status === currentIzinFilter);
             }
 
             if (filtered.length === 0) {
