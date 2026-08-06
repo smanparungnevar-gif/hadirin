@@ -1,268 +1,731 @@
-/** =======================
- * KONSTANTA
- * ======================= */
-const SPREADSHEET_ID = "1mxOEhWCiHv1OoyIUlJq2Xq13smO1iIEg09oGxljHUt4";
-const DATA_DROPDOWN_SHEET = "DataDropdown";
-const TUGAS_SHEET = "Tugas";
-const ROOT_FOLDER_ID = "1wfSlXjZ4E1cuk6DGYwo16LJLACU52qAn";
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "image/png",
-  "image/jpeg",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "application/zip",
-  "application/x-rar-compressed"
-];
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Upload Tugas Siswa</title>
 
-/** =======================
- * Tampilkan halaman HTML
- * ======================= */
-function doGet() {
-  return HtmlService
-    .createTemplateFromFile("Form")
-    .evaluate()
-    .setTitle("Upload Tugas")
-    .addMetaTag("viewport", "width=device-width, initial-scale=1")
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+    rel="stylesheet"
+  >
 
-/** =======================
- * Ambil data dropdown dari sheet
- * ======================= */
-function getDropdownData() {
-  const sheet = SpreadsheetApp
-    .openById(SPREADSHEET_ID)
-    .getSheetByName(DATA_DROPDOWN_SHEET);
-  const values = sheet.getDataRange().getValues().slice(1);
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  let namaKelasMap = {};
-  let mapelSet = new Set();
-  let tugasSet = new Set();
-
-  values.forEach(([kelas, namaKelas, mapel, tugas]) => {
-    if (kelas && namaKelas) {
-      if (!namaKelasMap[kelas]) namaKelasMap[kelas] = [];
-      if (!namaKelasMap[kelas].includes(namaKelas))
-        namaKelasMap[kelas].push(namaKelas);
+  <!-- ===================== CSS ===================== -->
+  <style>
+    /* Reset & Box Sizing */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
     }
-    if (mapel) mapelSet.add(mapel);
-    if (tugas) tugasSet.add(tugas);
-  });
 
-  return {
-    namaKelasMap,
-    mapel: Array.from(mapelSet),
-    tugas: Array.from(tugasSet)
-  };
-}
+    body,
+    input,
+    select,
+    button,
+    textarea,
+    option {
+      font-family: "Poppins", sans-serif;
+    }
 
-/** =======================
- * Upload File
- * ======================= */
-function uploadFile(data) {
-  const lock = LockService.getScriptLock();
+    /* Body */
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+    }
 
-  try {
-    lock.waitLock(30000);
+    /* Wrapper & Container */
+    .wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      width: 100vw;
+      padding: 0;
+      margin: 0;
+    }
 
-    if (!data.file || !data.file.data)
-      throw new Error("File kosong atau corrupt.");
+    .container {
+      background: #fff;
+      margin: 20px auto;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      max-width: 600px;
+      width: 95%;
+      animation: fadeIn 0.6s ease-in-out;
+    }
 
-    const fileBytes = Utilities.base64Decode(data.file.data);
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-    validateData(data, fileBytes);
+    @keyframes spin {
+      from {
+        transform: translateY(-50%) rotate(0deg);
+      }
+      to {
+        transform: translateY(-50%) rotate(360deg);
+      }
+    }
 
-    const sheet = getOrCreateSheet(TUGAS_SHEET, [
-      "Timestamp",
-      "Nama Siswa",
-      "Kelas",
-      "Nama Kelas",
-      "Mapel",
-      "Jenis Tugas",
-      "Nama File",
-      "File URL",
-      "Jenis Tugas",
-      "File URL",
-      "Email",
-      "File ID"
-    ]);
+    /* Typography */
+    h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #333;
+      font-weight: 600;
+    }
 
-    const folder = createNestedFolder(data);
-    const existingRow = findExistingRow(sheet, data);
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #555;
+    }
 
-    // Hapus file lama jika ada
-    if (existingRow > 0) deleteOldFileById(sheet, existingRow);
+    /* Form Fields */
+    .field-wrapper {
+      position: relative;
+      width: 100%;
+      margin-bottom: 18px;
+    }
 
-    // Simpan file baru
-    const fileName = createUniqueFileName(data.email, data.file.name);
-    const file = saveFileToFolder(fileBytes, data.file.type, fileName, folder);
+    .field-wrapper input,
+    .field-wrapper select {
+      width: 100%;
+      height: 45px;
+      padding: 0 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      background: #fafafa;
+      color: #333;
+      transition: all 0.3s ease;
+    }
 
-    // Update sheet
-    saveRow(sheet, existingRow, data, file.getUrl(), fileName, file.getId());
+    .field-wrapper select {
+      padding-right: 36px;
+      appearance: none;
+      background-image: url('data:image/svg+xml;utf8,<svg fill="%23999" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      color: #999;
+    }
 
-    return {
-      status: "success",
-      url: file.getUrl(),
-      replaced: existingRow > 0
-    };
+    .field-wrapper select:valid {
+      color: #333;
+    }
 
-  } catch (e) {
-    logError(e.message, data);
-    return { status: "error", message: e.message };
+    .field-wrapper select option {
+      color: #333;
+    }
 
-  } finally {
-    try { lock.releaseLock(); } catch (err) {}
-  }
-}
+    .field-wrapper select option[value=""] {
+      color: #999;
+    }
 
-/** =======================
- * Validasi Data & File
- * ======================= */
-function validateData(data, fileBytes) {
-  if (
-    !data.nama ||
-    !data.email ||
-    !data.kelas ||
-    !data.namaKelas ||
-    !data.mapel ||
-    !data.tugas
-  ) throw new Error("Data tidak lengkap.");
+    .field-wrapper input:hover,
+    .field-wrapper select:hover {
+      border-color: #4a90e2;
+      background: #fdfdfd;
+    }
 
-  if (!ALLOWED_TYPES.includes(data.file.type))
-    throw new Error("Tipe file tidak diizinkan.");
+    .field-wrapper input:focus,
+    .field-wrapper select:focus {
+      outline: none;
+      border: 1px solid #4a90e2;
+      box-shadow: 0 0 12px rgba(74, 144, 226, 0.4);
+      background: linear-gradient(120deg, #fff, #e6f2ff);
+    }
 
-  if (fileBytes.length > MAX_FILE_SIZE)
-    throw new Error("Ukuran file melebihi 20MB.");
-}
+    /* Spinner */
+    .spinner {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-top: 2px solid #4a90e2;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
 
-/** =======================
- * Buat nama file unik
- * ======================= */
-function createUniqueFileName(email, fileName) {
-  const timestamp = new Date().getTime();
-  const safeEmail = email.replace(/[^a-zA-Z0-9]/g, "_");
-  const safeFileName = fileName.replace(/[^a-zA-Z0-9_\-\.]/g, "_");
-  //return `${safeEmail}_${timestamp}_${safeFileName}`;
-  return `${safeFileName}_${safeEmail}_${timestamp}`;
-}
+    .loadingText {
+      font-size: 12px;
+      color: #4a90e2;
+      position: absolute;
+      right: 36px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+    }
 
-/** =======================
- * Hapus file lama berdasarkan File ID
- * ======================= */
-function deleteOldFileById(sheet, rowIndex) {
-  const oldFileId = sheet.getRange(rowIndex, 10).getValue();
-  if (!oldFileId) return;
+    /* File Input */
+    .file-input {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 45px;
+      padding: 0 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fafafa;
+      cursor: pointer;
+      font-size: 14px;
+    }
 
-  try {
-    const file = DriveApp.getFileById(oldFileId);
-    file.setTrashed(true);
-  } catch (e) { /* ignore jika file tidak ada */ }
-}
+    .file-input input {
+      display: none;
+    }
 
-/** =======================
- * Save / Update Row
- * ======================= */
-function saveRow(sheet, rowIndex, data, fileUrl, fileName, fileId) {
-  const row = [
-    new Date(),
-    data.nama,
-    data.kelas,
-    data.namaKelas,
-    data.mapel,
-    data.tugas,
-    fileName,
-    `=HYPERLINK("${fileUrl}";"Lihat File")`,
-    data.email,
-    fileId
-  ];
+    .file-input span {
+      color: #999;
+    }
 
-  if (rowIndex > 0)
-    sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
-  else
-    sheet.appendRow(row);
-}
+    .file-input button {
+      background: #4a90e2;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.3s;
+    }
 
-/** =======================
- * Folder Nested
- * ======================= */
-function createNestedFolder(data) {
-  const root = DriveApp.getFolderById(ROOT_FOLDER_ID);
+    .file-input button:hover {
+      background: #357ab8;
+    }
 
-  return [data.kelas, data.namaKelas, data.mapel, data.tugas].reduce(
-    (parent, name) => {
-      const safeName = name.replace(/[^a-zA-Z0-9_\- ]/g, "_");
-      const folders = parent.getFoldersByName(safeName);
-      return folders.hasNext() ? folders.next() : parent.createFolder(safeName);
-    },
-    root
-  );
-}
+    /* Submit Button */
+    button.submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #4a90e2, #357ab8);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
 
-/** =======================
- * Cari Row Existing
- * ======================= */
-function findExistingRow(sheet, data) {
-  const rows = sheet.getDataRange().getValues();
+    button.submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
 
-  for (let i = 1; i < rows.length; i++) {
-    const r = rows[i];
-    if (
-      r[1] === data.nama &&
-      r[2] === data.kelas &&
-      r[3] === data.namaKelas &&
-      r[4] === data.mapel &&
-      r[5] === data.tugas &&
-      r[8] === data.email
-    ) return i + 1;
-  }
+    /* Form Header */
+    .form-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(135deg, #ff7e5f, #ff9966, #ff5e62, #ff7e5f);
+      background-size: 300% 300%;
+      color: white;
+      padding: 25px 20px;
+      border-radius: 20px 20px 0 0;
+      margin: -30px -30px 20px -30px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+      animation: gradientShift 6s ease infinite, fadeIn 0.8s ease-in-out;
+    }
 
-  return -1;
-}
+    /* Gradient animation */
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
 
-/** =======================
- * Simpan File
- * ======================= */
-function saveFileToFolder(bytes, type, fileName, folder) {
-  const blob = Utilities.newBlob(bytes, type, fileName);
-  return folder.createFile(blob);
-}
+    /* Floating shapes */
+    .form-header::before,
+    .form-header::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      filter: blur(10px);
+      animation: float 6s ease-in-out infinite alternate;
+    }
 
-/** =======================
- * Sheet Helper
- * ======================= */
-function getOrCreateSheet(name, header) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(name);
+    .form-header::before {
+      width: 160px;
+      height: 160px;
+      top: -60px;
+      right: -55px;
+    }
 
-  if (!sheet) sheet = ss.insertSheet(name).appendRow(header);
+    .form-header::after {
+      width: 100px;
+      height: 100px;
+      bottom: -50px;
+      left: -40px;
+    }
 
-  return sheet;
-}
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(18px) rotate(45deg); }
+      100% { transform: translateY(0) rotate(0deg); }
+    }
 
-/** =======================
- * Error Logging
- * ======================= */
-function logError(message, data) {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sheet = ss.getSheetByName("ErrorLog");
+    /* Optional: light streak overlay */
+    .form-header::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 70%);
+      pointer-events: none;
+    }
 
-    if (!sheet) sheet = ss.insertSheet("ErrorLog").appendRow([
-      "Timestamp",
-      "Message",
-      "Data"
-    ]);
+    /* Header Top */
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
 
-    sheet.appendRow([new Date(), message, JSON.stringify(data)]);
+    /* Icon styling */
+    .header-top .icon {
+      font-size: 30px;
+      background: white;
+      color: #ff5e62;
+      width: 54px;
+      height: 54px;
+      line-height: 54px;
+      border-radius: 50%;
+      text-align: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3), 0 0 6px rgba(255,94,98,0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
 
-  } catch (e) {
-    console.error("Gagal log error:", message, data);
-  }
-}
+    .header-top .icon:hover {
+      transform: scale(1.25) rotate(12deg);
+      box-shadow: 0 0 16px rgba(255,94,98,0.6), 0 0 28px rgba(255,158,98,0.4);
+    }
+
+    /* Title styling */
+    .header-top .title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-shadow: 1px 2px 8px rgba(0,0,0,0.3);
+    }
+
+    /* Subtitle styling */
+    .subtitle {
+      font-size: 15px;
+      opacity: 0.95;
+      margin: 0;
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 3px rgba(0,0,0,0.1);
+    }
+
+    /* Responsif */
+    @media (max-width: 400px) {
+      .container {
+        width: 95%;
+        padding: 20px;
+      }
+
+      button.submit-btn {
+        font-size: 14px;
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <!-- Form Header -->
+      <div class="form-header">
+        <div class="header-top">
+          <div class="icon">📋</div>
+          <div class="title">Upload Tugas Siswa</div>
+        </div>
+        <p class="subtitle">Silakan isi data dengan lengkap dan benar</p>
+      </div>
+
+      <!-- Form -->
+      <form id="tugasForm" novalidate>
+        <!-- Nama Siswa -->
+        <label>👤 Nama Siswa</label>
+        <div class="field-wrapper">
+          <input type="text" id="nama" placeholder="Masukkan nama lengkap">
+        </div>
+
+        <!-- Email Siswa -->
+        <label>📧 Email Siswa</label>
+        <div class="field-wrapper">
+          <input type="email" id="email" placeholder="Masukkan email aktif">
+        </div>
+
+        <!-- Dropdown Kelas -->
+        <label>🏢 Tingkat Kelas</label>
+        <div class="field-wrapper">
+          <select id="kelas">
+            <option value="" disabled selected></option>
+          </select>
+          <div class="spinner" id="spinnerKelas"></div>
+          <span class="loadingText" id="loadingTextKelas">Loading...</span>
+        </div>
+
+        <!-- Dropdown Nama Kelas -->
+        <label>🎓 Nama Kelas</label>
+        <div class="field-wrapper">
+          <select id="namaKelas">
+            <option value="" disabled selected></option>
+          </select>
+          <div class="spinner" id="spinnerNamaKelas"></div>
+          <span class="loadingText" id="loadingTextNamaKelas">Loading...</span>
+        </div>
+
+        <!-- Dropdown Mapel -->
+        <label>📚 Mata Pelajaran</label>
+        <div class="field-wrapper">
+          <select id="mapel">
+            <option value="" disabled selected></option>
+          </select>
+          <div class="spinner" id="spinnerMapel"></div>
+          <span class="loadingText" id="loadingTextMapel">Loading...</span>
+        </div>
+
+        <!-- Dropdown Tugas -->
+        <label>📝 Jenis Tugas</label>
+        <div class="field-wrapper">
+          <select id="tugas">
+            <option value="" disabled selected>-- Pilih --</option>
+          </select>
+          <div class="spinner" id="spinnerTugas"></div>
+          <span class="loadingText" id="loadingTextTugas">Loading...</span>
+        </div>
+
+        <!-- File Input -->
+        <label>📎 Pilih File</label>
+        <div class="file-input">
+          <span id="fileLabel">Belum ada file</span>
+          <button type="button" onclick="document.getElementById('file').click()">
+            Browse
+          </button>
+          <input type="file" id="file">
+        </div>
+
+        <!-- Dropdown Tugas -->
+        <label>📝 Jenis Tugas</label>
+        <div class="field-wrapper">
+          <select id="tugas">
+            <option value="" disabled selected>-- Pilih --</option>
+          </select>
+          <div class="spinner" id="spinnerTugas"></div>
+          <span class="loadingText" id="loadingTextTugas">Loading...</span>
+        </div>
+
+        <!-- File Input -->
+        <label>📎 Pilih File</label>
+        <div class="file-input">
+          <span id="fileLabel">Belum ada file</span>
+          <button type="button" onclick="document.getElementById('file').click()">
+            Browse
+          </button>
+          <input type="file" id="file">
+        </div>
+
+        <br>
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-btn">⬆️ Upload</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== JS ===================== -->
+  <script>
+    // ======= JS UTILITY & KONSTANTA =======
+    const MAX_FILE_SIZE = 20 * 1024 * 1024; 
+    const ALLOWED_TYPES = [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/zip",
+      "application/x-rar-compressed"
+    ];
+
+    let namaKelasMap = {};
+    let dataReady = false;
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function showSpinner(id, show) {
+      const spinner = document.getElementById("spinner" + capitalize(id));
+      const text = document.getElementById("loadingText" + capitalize(id));
+      if (spinner) spinner.style.display = show ? "block" : "none";
+      if (text) text.style.display = show ? "inline" : "none";
+    }
+
+    function fillSelect(id, items, placeholder) {
+      const select = document.getElementById(id);
+      select.innerHTML = "";
+      const placeholderOpt = document.createElement("option");
+      placeholderOpt.value = "";
+      placeholderOpt.textContent = placeholder;
+      placeholderOpt.disabled = true;
+      placeholderOpt.selected = true;
+      select.appendChild(placeholderOpt);
+
+      items.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item;
+        opt.textContent = item;
+        select.appendChild(opt);
+      });
+
+      select.required = true;
+    }
+
+    function sanitizeFileName(name) {
+      return name.replace(/[^a-zA-Z0-9_\-\.]/g, "_");
+    }
+
+    function validateFile(file) {
+      if (!file) return "Belum ada file";
+      if (!ALLOWED_TYPES.includes(file.type)) return "Tipe file tidak diperbolehkan";
+      if (file.size > MAX_FILE_SIZE) return "Ukuran file terlalu besar (max 20MB)";
+      return null;
+    }
+
+    function validateForm(formData) {
+      if (!formData.nama) return "Nama Siswa";
+      if (!formData.email) return "Email Siswa";
+      if (!formData.kelas) return "Kelas";
+      if (!formData.namaKelas) return "Nama Kelas";
+      if (!formData.mapel) return "Mapel";
+      if (!formData.tugas) return "Jenis Tugas";
+      if (!formData.tugas) return "Jenis Tugas";
+      if (!formData.file) return "File";
+      return null;
+    }
+
+    // ======= INIT DROPDOWN =======
+    function initDropdowns(data) {
+      namaKelasMap = data.namaKelasMap;
+      fillSelect("kelas", Object.keys(namaKelasMap).sort(), "-- Pilih kelas --");
+      fillSelect("mapel", data.mapel.sort(), "-- Pilih mapel --");
+      fillSelect("tugas", data.tugas.sort(), "-- Pilih jenis tugas --");
+      fillSelect("tugas", data.tugas.sort(), "-- Pilih jenis tugas --");
+      fillSelect("namaKelas", [], "-- Pilih nama kelas --");
+      showSpinner("kelas", false);
+      showSpinner("mapel", false);
+      showSpinner("tugas", false);
+      showSpinner("tugas", false);
+      dataReady = true;
+    }
+
+    // ======= EVENT LISTENERS =======
+    document.getElementById("kelas").addEventListener("change", function () {
+      showSpinner("namaKelas", true);
+      fillSelect("namaKelas", namaKelasMap[this.value] || [], "-- Pilih nama kelas --");
+      showSpinner("namaKelas", false);
+    });
+
+    document.getElementById("file").addEventListener("change", function () {
+      const file = this.files[0];
+      const msg = validateFile(file);
+      const label = document.getElementById("fileLabel");
+
+      if (msg) {
+        Swal.fire({
+          icon: "error",
+          title: msg,
+          confirmButtonColor: "#4a90e2"
+        });
+        this.value = "";
+        label.textContent = "Belum ada file";
+      } else {
+        label.textContent = file.name;
+      }
+    });
+
+    // ======= FORM SUBMIT =======
+    document.getElementById("tugasForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const file = document.getElementById("file").files[0];
+      const formData = {
+        nama: document.getElementById("nama").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        kelas: document.getElementById("kelas").value,
+        namaKelas: document.getElementById("namaKelas").value,
+        mapel: document.getElementById("mapel").value,
+        tugas: document.getElementById("tugas").value,
+        file
+      };
+
+      const invalidField = validateForm(formData);
+      if (invalidField) {
+        Swal.fire({
+          icon: "warning",
+          title: "Form belum lengkap",
+          text: invalidField + " belum diisi!",
+          confirmButtonColor: "#4a90e2"
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: "Menyiapkan upload...",
+        html: '<progress id="progressBar" value="0" max="100" style="width:100%"></progress><div id="progressPercent" style="text-align:center;margin-top:5px;">0%</div>',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      const progressBar = document.getElementById("progressBar");
+      const progressText = document.getElementById("progressPercent");
+      const reader = new FileReader();
+      let simulatedProgress = 50;
+
+      reader.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const val = Math.round((e.loaded / e.total) * 50);
+          progressBar.value = val;
+          progressText.innerText = val + "%";
+        }
+      };
+
+      reader.onload = () => {
+        const base64Data = reader.result.split(",")[1];
+        const safeFileName = sanitizeFileName(file.name);
+
+        const interval = setInterval(() => {
+          if (simulatedProgress < 90) {
+            simulatedProgress += Math.floor(Math.random() * 3) + 1;
+            if (simulatedProgress > 90) simulatedProgress = 90;
+            progressBar.value = simulatedProgress;
+            progressText.innerText = simulatedProgress + "%";
+          } else {
+            clearInterval(interval);
+          }
+        }, 200);
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            progressBar.value = 100;
+            progressText.innerText = "100%";
+            Swal.close();
+            handleUploadResult(res);
+          })
+          .uploadFile({
+            ...formData,
+            file: {
+              name: safeFileName,
+              type: file.type,
+              data: base64Data
+            }
+          });
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    function handleUploadResult(res) {
+      document.getElementById("progressBar").value = 100;
+      document.getElementById("progressPercent").innerText = "100%";
+      Swal.close();
+
+      if (res.status === "success") {
+        const msg = res.replaced
+          ? "File diperbarui. Tugas berhasil diperbarui."
+          : "Tugas berhasil diupload.";
+
+        Swal.fire("Sukses!", msg, "success");
+        resetFormCompletely();
+        fillSelect("namaKelas", [], "-- Pilih nama kelas --");
+      } else {
+        Swal.fire("Gagal!", res.message, "error");
+      }
+    }
+
+    // ======= RESET FORM =======
+    function resetFormCompletely() {
+      const form = document.getElementById("tugasForm");
+
+      // Reset semua input text/email
+      form.querySelectorAll("input[type=text], input[type=email]").forEach(input => input.value = "");
+
+      // Reset semua select dropdown
+      form.querySelectorAll("select").forEach(select => {
+        select.selectedIndex = 0; // kembalikan ke placeholder
+      });
+
+      // Reset file input
+      const fileInput = document.getElementById("file");
+      fileInput.value = "";
+      document.getElementById("fileLabel").textContent = "Belum ada file";
+
+      // Reset spinner/loading jika ada
+      form.querySelectorAll(".spinner").forEach(spinner => spinner.style.display = "none");
+      form.querySelectorAll(".loadingText").forEach(text => text.style.display = "none");
+    }
+
+    // ======= START: LOAD DROPDOWN =======
+    showSpinner("kelas", true);
+    showSpinner("mapel", true);
+    showSpinner("tugas", true);
+    showSpinner("tugas", true);
+    showSpinner("namaKelas", false);
+
+    // ======= Tampilkan Swal loading saat pertama load =======
+    Swal.fire({
+      title: 'Memuat form...',
+      html: 'Harap tunggu sebentar',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    // ======= Tutup Swal =======
+    window.addEventListener('DOMContentLoaded', () => {
+      // Sedikit delay agar animasi fadeIn terlihat smooth
+      setTimeout(() => {
+        Swal.close();
+      }, 500); // 500ms bisa diubah sesuai kebutuhan
+    });
+
+    google.script.run.withSuccessHandler(initDropdowns).getDropdownData();
+  </script>
+</body>
+</html>
 
