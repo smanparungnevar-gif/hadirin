@@ -437,26 +437,6 @@
           <input type="file" id="file">
         </div>
 
-        <!-- Dropdown Tugas -->
-        <label>📝 Jenis Tugas</label>
-        <div class="field-wrapper">
-          <select id="tugas">
-            <option value="" disabled selected>-- Pilih --</option>
-          </select>
-          <div class="spinner" id="spinnerTugas"></div>
-          <span class="loadingText" id="loadingTextTugas">Loading...</span>
-        </div>
-
-        <!-- File Input -->
-        <label>📎 Pilih File</label>
-        <div class="file-input">
-          <span id="fileLabel">Belum ada file</span>
-          <button type="button" onclick="document.getElementById('file').click()">
-            Browse
-          </button>
-          <input type="file" id="file">
-        </div>
-
         <br>
 
         <!-- Submit Button -->
@@ -535,7 +515,6 @@
       if (!formData.namaKelas) return "Nama Kelas";
       if (!formData.mapel) return "Mapel";
       if (!formData.tugas) return "Jenis Tugas";
-      if (!formData.tugas) return "Jenis Tugas";
       if (!formData.file) return "File";
       return null;
     }
@@ -546,11 +525,9 @@
       fillSelect("kelas", Object.keys(namaKelasMap).sort(), "-- Pilih kelas --");
       fillSelect("mapel", data.mapel.sort(), "-- Pilih mapel --");
       fillSelect("tugas", data.tugas.sort(), "-- Pilih jenis tugas --");
-      fillSelect("tugas", data.tugas.sort(), "-- Pilih jenis tugas --");
       fillSelect("namaKelas", [], "-- Pilih nama kelas --");
       showSpinner("kelas", false);
       showSpinner("mapel", false);
-      showSpinner("tugas", false);
       showSpinner("tugas", false);
       dataReady = true;
     }
@@ -704,7 +681,6 @@
     // ======= START: LOAD DROPDOWN =======
     showSpinner("kelas", true);
     showSpinner("mapel", true);
-    showSpinner("tugas", true);
     showSpinner("tugas", true);
     showSpinner("namaKelas", false);
 
