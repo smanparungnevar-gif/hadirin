@@ -3,778 +3,442 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Form Upload Tugas Siswa</title>
-
-  <!-- Google Fonts -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
-    rel="stylesheet"
-  >
-
-  <!-- SweetAlert2 -->
+  <title>Portal Pengumpulan Tugas Siswa</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SweetAlert2 for notifications -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <!-- ===================== CSS ===================== -->
   <style>
-    /* Reset & Box Sizing */
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-    }
-
-    body,
-    input,
-    select,
-    button,
-    textarea,
-    option {
-      font-family: "Poppins", sans-serif;
-    }
-
-    /* Body */
     body {
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
-    }
-
-    /* Wrapper & Container */
-    .wrapper {
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
       min-height: 100vh;
-      width: 100vw;
-      padding: 0;
-      margin: 0;
     }
-
-    .container {
-      background: #fff;
-      margin: 20px auto;
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-      max-width: 600px;
-      width: 95%;
-      animation: fadeIn 0.6s ease-in-out;
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     }
-
-    /* Animations */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .custom-dashed-border {
+      background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='12' ry='12' stroke='%236366F1FF' stroke-width='2' stroke-dasharray='6%2c 8' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+      border-radius: 12px;
     }
-
-    @keyframes spin {
-      from {
-        transform: translateY(-50%) rotate(0deg);
-      }
-      to {
-        transform: translateY(-50%) rotate(360deg);
-      }
-    }
-
-    /* Typography */
-    h2 {
-      text-align: center;
-      margin-bottom: 25px;
-      color: #333;
-      font-weight: 600;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 500;
-      color: #555;
-    }
-
-    /* Form Fields */
-    .field-wrapper {
-      position: relative;
-      width: 100%;
-      margin-bottom: 18px;
-    }
-
-    .field-wrapper input,
-    .field-wrapper select {
-      width: 100%;
-      height: 45px;
-      padding: 0 12px;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      font-size: 14px;
-      background: #fafafa;
-      color: #333;
-      transition: all 0.3s ease;
-    }
-
-    .field-wrapper select {
-      padding-right: 36px;
-      appearance: none;
-      background-image: url('data:image/svg+xml;utf8,<svg fill="%23999" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      background-size: 16px;
-      color: #999;
-    }
-
-    .field-wrapper select:valid {
-      color: #333;
-    }
-
-    .field-wrapper select option {
-      color: #333;
-    }
-
-    .field-wrapper select option[value=""] {
-      color: #999;
-    }
-
-    .field-wrapper input:hover,
-    .field-wrapper select:hover {
-      border-color: #4a90e2;
-      background: #fdfdfd;
-    }
-
-    .field-wrapper input:focus,
-    .field-wrapper select:focus {
-      outline: none;
-      border: 1px solid #4a90e2;
-      box-shadow: 0 0 12px rgba(74, 144, 226, 0.4);
-      background: linear-gradient(120deg, #fff, #e6f2ff);
-    }
-
-    /* Spinner */
-    .spinner {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      border: 2px solid #ccc;
-      border-top: 2px solid #4a90e2;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      display: none;
-    }
-
-    .loadingText {
-      font-size: 12px;
-      color: #4a90e2;
-      position: absolute;
-      right: 36px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: none;
-    }
-
-    /* File Input */
-    .file-input {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 45px;
-      padding: 0 12px;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      background: #fafafa;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .file-input input {
-      display: none;
-    }
-
-    .file-input span {
-      color: #999;
-    }
-
-    .file-input button {
-      background: #4a90e2;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 12px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background 0.3s;
-    }
-
-    .file-input button:hover {
-      background: #357ab8;
-    }
-
-    /* Submit Button */
-    button.submit-btn {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #4a90e2, #357ab8);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    button.submit-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    button.submit-btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-
-    /* Form Header */
-    .form-header {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      background: linear-gradient(135deg, #ff7e5f, #ff9966, #ff5e62, #ff7e5f);
-      background-size: 300% 300%;
-      color: white;
-      padding: 25px 20px;
-      border-radius: 20px 20px 0 0;
-      margin: -30px -30px 20px -30px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.28);
-      animation: gradientShift 6s ease infinite, fadeIn 0.8s ease-in-out;
-    }
-
-    /* Gradient animation */
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    /* Floating shapes */
-    .form-header::before,
-    .form-header::after {
-      content: "";
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.12);
-      filter: blur(10px);
-      animation: float 6s ease-in-out infinite alternate;
-    }
-
-    .form-header::before {
-      width: 160px;
-      height: 160px;
-      top: -60px;
-      right: -55px;
-    }
-
-    .form-header::after {
-      width: 100px;
-      height: 100px;
-      bottom: -50px;
-      left: -40px;
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0) rotate(0deg); }
-      50% { transform: translateY(18px) rotate(45deg); }
-      100% { transform: translateY(0) rotate(0deg); }
-    }
-
-    /* Header Top */
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      margin-bottom: 12px;
-    }
-
-    /* Icon styling */
-    .header-top .icon {
-      font-size: 30px;
-      background: white;
-      color: #ff5e62;
-      width: 54px;
-      height: 54px;
-      line-height: 54px;
-      border-radius: 50%;
-      text-align: center;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3), 0 0 6px rgba(255,94,98,0.3);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .header-top .icon:hover {
-      transform: scale(1.25) rotate(12deg);
-      box-shadow: 0 0 16px rgba(255,94,98,0.6), 0 0 28px rgba(255,158,98,0.4);
-    }
-
-    /* Title styling */
-    .header-top .title {
-      font-size: 28px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      text-shadow: 1px 2px 8px rgba(0,0,0,0.3);
-    }
-
-    /* Subtitle styling */
-    .subtitle {
-      font-size: 15px;
-      opacity: 0.95;
-      margin: 0;
-      letter-spacing: 0.5px;
-      text-shadow: 0 0 3px rgba(0,0,0,0.1);
-    }
-
-    /* Responsif */
-    @media (max-width: 400px) {
-      .container {
-        width: 95%;
-        padding: 20px;
-      }
-
-      button.submit-btn {
-        font-size: 14px;
-        padding: 12px;
-      }
+    .drag-active {
+      background-color: #eef2ff !important;
+      border-color: #4f46e5 !important;
     }
   </style>
 </head>
-<body>
-  <div class="wrapper">
-    <div class="container">
-      <!-- Form Header -->
-      <div class="form-header">
-        <div class="header-top">
-          <div class="icon">📋</div>
-          <div class="title">Upload Tugas Siswa</div>
-        </div>
-        <p class="subtitle">Silakan isi data dengan lengkap dan benar</p>
+<body class="flex items-center justify-center p-4 sm:p-6 md:p-8">
+
+  <div class="w-full max-w-2xl glass-card rounded-2xl p-6 sm:p-8 border border-indigo-100">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 text-white rounded-2xl shadow-lg mb-4">
+        <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">Pengumpulan Tugas Siswa</h1>
+      <p class="text-sm sm:text-base text-slate-500 mt-1">Isi formulir di bawah ini untuk mengunggah tugas sekolah Anda.</p>
+    </div>
+
+    <!-- Alert / Notification Banner -->
+    <div id="statusBanner" class="hidden mb-6 p-4 rounded-xl text-sm font-medium flex items-center gap-3"></div>
+
+    <form id="tugasForm" class="space-y-5">
+      
+      <!-- Nama Siswa -->
+      <div>
+        <label for="nama" class="block text-sm font-semibold text-slate-700 mb-1">
+          <i class="fa-solid fa-user text-indigo-500 mr-1.5"></i>Nama Lengkap Siswa
+        </label>
+        <input type="text" id="nama" placeholder="Contoh: Ahmad Rizky" 
+          class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition outline-none text-slate-800 text-sm">
       </div>
 
-      <!-- Form -->
-      <form id="tugasForm" novalidate>
-        <!-- Nama Siswa -->
-        <label>👤 Nama Siswa</label>
-        <div class="field-wrapper">
-          <input type="text" id="nama" placeholder="Masukkan nama lengkap">
+      <!-- Grid 2 Kolom: Kelas & Nama Kelas -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Kelas Dropdown -->
+        <div>
+          <label for="kelas" class="block text-sm font-semibold text-slate-700 mb-1">
+            <i class="fa-solid fa-graduation-cap text-indigo-500 mr-1.5"></i>Tingkat Kelas
+          </label>
+          <div class="relative">
+            <select id="kelas" disabled
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition outline-none text-slate-800 text-sm bg-slate-50 disabled:bg-slate-100 appearance-none">
+              <option value="" disabled selected>Memuat data kelas...</option>
+            </select>
+            <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+          </div>
         </div>
 
-        <!-- Dropdown Kelas -->
-        <label>🏢 Tingkat Kelas</label>
-        <div class="field-wrapper">
-          <select id="kelas">
-            <option value="" disabled selected></option>
+        <!-- Nama Kelas Dropdown -->
+        <div>
+          <label for="namaKelas" class="block text-sm font-semibold text-slate-700 mb-1">
+            <i class="fa-solid fa-school text-indigo-500 mr-1.5"></i>Nama Kelas / Rombel
+          </label>
+          <div class="relative">
+            <select id="namaKelas" disabled
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition outline-none text-slate-800 text-sm bg-slate-50 disabled:bg-slate-100 appearance-none">
+              <option value="" disabled selected>Pilih Tingkat Kelas dulu</option>
+            </select>
+            <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mata Pelajaran -->
+      <div>
+        <label for="mapel" class="block text-sm font-semibold text-slate-700 mb-1">
+          <i class="fa-solid fa-book text-indigo-500 mr-1.5"></i>Mata Pelajaran
+        </label>
+        <div class="relative">
+          <select id="mapel" disabled
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition outline-none text-slate-800 text-sm bg-slate-50 disabled:bg-slate-100 appearance-none">
+            <option value="" disabled selected>Memuat data mapel...</option>
           </select>
-          <div class="spinner" id="spinnerKelas"></div>
-          <span class="loadingText" id="loadingTextKelas">Loading...</span>
+          <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
         </div>
+      </div>
 
-        <!-- Dropdown Nama Kelas -->
-        <label>🎓 Nama Kelas</label>
-        <div class="field-wrapper">
-          <select id="namaKelas">
-            <option value="" disabled selected></option>
+      <!-- Bab / Materi -->
+      <div>
+        <label for="materi" class="block text-sm font-semibold text-slate-700 mb-1">
+          <i class="fa-solid fa-bookmark text-indigo-500 mr-1.5"></i>Bab / Materi Pembelajaran
+        </label>
+        <input type="text" id="materi" placeholder="Contoh: Bab 1 - Persamaan Kuadrat" 
+          class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition outline-none text-slate-800 text-sm">
+      </div>
+
+      <!-- Jenis Tugas -->
+      <div>
+        <label for="tugas" class="block text-sm font-semibold text-slate-700 mb-1">
+          <i class="fa-solid fa-list-check text-indigo-500 mr-1.5"></i>Jenis Tugas
+        </label>
+        <div class="relative">
+          <select id="tugas" disabled
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition outline-none text-slate-800 text-sm bg-slate-50 disabled:bg-slate-100 appearance-none">
+            <option value="" disabled selected>Memuat jenis tugas...</option>
           </select>
-          <div class="spinner" id="spinnerNamaKelas"></div>
-          <span class="loadingText" id="loadingTextNamaKelas">Loading...</span>
+          <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
         </div>
+      </div>
 
-        <!-- ... existing code ... -->
-        <!-- Dropdown Mapel -->
-        <label>📚 Mata Pelajaran</label>
-        <div class="field-wrapper">
-          <select id="mapel">
-            <option value="" disabled selected></option>
-          </select>
-          <div class="spinner" id="spinnerMapel"></div>
-          <span class="loadingText" id="loadingTextMapel">Loading...</span>
+      <!-- Dropzone File Upload -->
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">
+          <i class="fa-solid fa-paperclip text-indigo-500 mr-1.5"></i>Upload File Tugas (Maksimal 20MB)
+        </label>
+        
+        <div id="dropzone" class="custom-dashed-border p-6 text-center cursor-pointer transition bg-indigo-50/50 hover:bg-indigo-50 relative">
+          <input type="file" id="file" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar">
+          
+          <div id="dropzoneContent">
+            <i class="fa-solid fa-file-arrow-up text-3xl text-indigo-500 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700">Klik untuk memilih file atau seret file ke sini</p>
+            <p class="text-xs text-slate-400 mt-1">Format diizinkan: PDF, Images, Word, Excel, PowerPoint, ZIP, RAR</p>
+          </div>
+
+          <div id="fileInfo" class="hidden items-center justify-between bg-white p-3 rounded-xl border border-indigo-100 shadow-sm">
+            <div class="flex items-center space-x-3 overflow-hidden">
+              <i id="fileIcon" class="fa-solid fa-file text-2xl text-indigo-600 flex-shrink-0"></i>
+              <div class="text-left truncate">
+                <p id="fileName" class="text-sm font-semibold text-slate-800 truncate"></p>
+                <p id="fileSize" class="text-xs text-slate-400"></p>
+              </div>
+            </div>
+            <button type="button" id="removeFileBtn" class="text-slate-400 hover:text-red-500 p-2 transition">
+              <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+          </div>
         </div>
+      </div>
 
-        <!-- Input Bab / Materi -->
-        <label>📖 Bab / Materi</label>
-        <div class="field-wrapper">
-          <input type="text" id="materi" placeholder="Contoh: Bab 1 - Persamaan Kuadrat">
-        </div>
+      <!-- Submit Button -->
+      <button type="submit" id="submitBtn" disabled
+        class="w-full py-3.5 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 transition duration-200 flex items-center justify-center space-x-2 disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed">
+        <i class="fa-solid fa-paper-plane"></i>
+        <span id="submitBtnText">Kirim Tugas</span>
+      </button>
 
-        <!-- Dropdown Tugas -->
-        <label>📝 Jenis Tugas</label>
-<!-- ... existing code ... -->
-    function validateForm(formData) {
-      if (!formData.nama) return "Nama Siswa";
-      if (!formData.kelas) return "Kelas";
-      if (!formData.namaKelas) return "Nama Kelas";
-      if (!formData.mapel) return "Mapel";
-      if (!formData.materi) return "Bab / Materi";
-      if (!formData.tugas) return "Jenis Tugas";
-      if (!formData.file) return "File";
-      return null;
-    }
+    </form>
+  </div>
 
-    // ======= INIT DROPDOWN =======
-<!-- ... existing code ... -->
-    // ======= FORM SUBMIT =======
-    document.getElementById("tugasForm").addEventListener("submit", function (e) {
-      e.preventDefault();
+  <script>
+    // State aplikasi
+    let globalDropdownData = { namaKelasMap: {}, mapel: [], tugas: [] };
+    let isDataLoaded = false;
+    let selectedFile = null;
 
-      if (!dataReady) {
-        Swal.fire("Sabar...", "Data dropdown sedang dimuat.", "warning");
+    // DOM Elements
+    const form = document.getElementById("tugasForm");
+    const kelasSelect = document.getElementById("kelas");
+    const namaKelasSelect = document.getElementById("namaKelas");
+    const mapelSelect = document.getElementById("mapel");
+    const tugasSelect = document.getElementById("tugas");
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("file");
+    const dropzoneContent = document.getElementById("dropzoneContent");
+    const fileInfo = document.getElementById("fileInfo");
+    const fileNameEl = document.getElementById("fileName");
+    const fileSizeEl = document.getElementById("fileSize");
+    const removeFileBtn = document.getElementById("removeFileBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const submitBtnText = document.getElementById("submitBtnText");
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadDropdowns();
+      setupDropzone();
+    });
+
+    function loadDropdowns() {
+      if (typeof google === "undefined" || !google.script || !google.script.run) {
+        showStaticMessage("Aplikasi harus dijalankan di lingkungan Google Apps Script Web App.", "error");
         return;
       }
 
-      const submitBtn = document.getElementById("submitBtn");
-      const file = document.getElementById("file").files[0];
-      const formData = {
-        nama: document.getElementById("nama").value.trim(),
-        kelas: document.getElementById("kelas").value,
-        namaKelas: document.getElementById("namaKelas").value,
-        mapel: document.getElementById("mapel").value,
-        materi: document.getElementById("materi").value.trim(),
-        tugas: document.getElementById("tugas").value,
-        file
-      };
-
-      const invalidField = validateForm(formData);
-<!-- ... existing code ... -->
-`
-        <br>
-
-        <!-- Submit Button -->
-        <button type="submit" id="submitBtn" class="submit-btn">⬆️ Upload</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ===================== JS ===================== -->
-  <script>
-    // ======= FALLBACK MOCK GOOGLE SCRIPT RUN (Untuk Preview / Browser Lokal) =======
-    if (typeof google === "undefined" || !google.script || !google.script.run) {
-      window.google = window.google || {};
-      window.google.script = window.google.script || {};
-      
-      window.google.script.run = (function () {
-        let successCb = null;
-        let failureCb = null;
-
-        const runner = {
-          withSuccessHandler: function (cb) {
-            successCb = cb;
-            return runner;
-          },
-          withFailureHandler: function (cb) {
-            failureCb = cb;
-            return runner;
-          },
-          getDropdownData: function () {
-            setTimeout(() => {
-              if (successCb) {
-                successCb({
-                  namaKelasMap: {
-                    "X": ["X-IPA-1", "X-IPA-2", "X-IPS-1"],
-                    "XI": ["XI-IPA-1", "XI-IPS-1", "XI-IPS-2"],
-                    "XII": ["XII-IPA-1", "XII-IPS-1"]
-                  },
-                  mapel: ["Matematika", "Bahasa Indonesia", "Bahasa Inggris", "Fisika"],
-                  tugas: ["Tugas Harian", "UTS", "UAS", "Praktikum"]
-                });
-              }
-            }, 600);
-          },
-          uploadFile: function (data) {
-            setTimeout(() => {
-              if (successCb) {
-                successCb({
-                  status: "success",
-                  url: "https://drive.google.com",
-                  replaced: false
-                });
-              }
-            }, 1200);
-          }
-        };
-        return runner;
-      })();
+      google.script.run
+        .withSuccessHandler(onDropdownSuccess)
+        .withFailureHandler(onDropdownError)
+        .getDropdownData();
     }
 
-    // ======= JS UTILITY & KONSTANTA =======
-    const MAX_FILE_SIZE = 20 * 1024 * 1024; 
-    const ALLOWED_TYPES = [
-      "application/pdf",
-      "image/png",
-      "image/jpeg",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/vnd.ms-powerpoint",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      "application/zip",
-      "application/x-rar-compressed"
-    ];
+    function onDropdownSuccess(data) {
+      globalDropdownData = data || { namaKelasMap: {}, mapel: [], tugas: [] };
+      isDataLoaded = true;
 
-    let namaKelasMap = {};
-    let dataReady = false;
+      // Populate Kelas
+      const kelasList = Object.keys(globalDropdownData.namaKelasMap || {});
+      populateSelect(kelasSelect, kelasList, "Pilih Tingkat Kelas");
+      kelasSelect.disabled = false;
+      kelasSelect.classList.remove("bg-slate-50");
 
-    function capitalize(str) {
-      return str.charAt(0).toUpperCase() + str.slice(1);
+      // Populate Mapel
+      populateSelect(mapelSelect, globalDropdownData.mapel || [], "Pilih Mata Pelajaran");
+      mapelSelect.disabled = false;
+      mapelSelect.classList.remove("bg-slate-50");
+
+      // Populate Jenis Tugas
+      populateSelect(tugasSelect, globalDropdownData.tugas || [], "Pilih Jenis Tugas");
+      tugasSelect.disabled = false;
+      tugasSelect.classList.remove("bg-slate-50");
+
+      submitBtn.disabled = false;
     }
 
-    function showSpinner(id, show) {
-      const spinner = document.getElementById("spinner" + capitalize(id));
-      const text = document.getElementById("loadingText" + capitalize(id));
-      if (spinner) spinner.style.display = show ? "block" : "none";
-      if (text) text.style.display = show ? "inline" : "none";
+    function onDropdownError(err) {
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Memuat Data",
+        text: err.message || "Terjadi kesalahan saat mengambil data dari Spreadsheet.",
+        confirmButtonColor: "#4f46e5"
+      });
     }
 
-    function fillSelect(id, items, placeholder) {
-      const select = document.getElementById(id);
-      select.innerHTML = "";
-      const placeholderOpt = document.createElement("option");
-      placeholderOpt.value = "";
-      placeholderOpt.textContent = placeholder;
-      placeholderOpt.disabled = true;
-      placeholderOpt.selected = true;
-      select.appendChild(placeholderOpt);
+    // Dynamic Cascade Dropdown Kelas -> Nama Kelas
+    kelasSelect.addEventListener("change", function () {
+      const selectedKelas = this.value;
+      const subKelasList = globalDropdownData.namaKelasMap[selectedKelas] || [];
 
+      if (subKelasList.length > 0) {
+        populateSelect(namaKelasSelect, subKelasList, "Pilih Nama Kelas");
+        namaKelasSelect.disabled = false;
+        namaKelasSelect.classList.remove("bg-slate-50");
+      } else {
+        populateSelect(namaKelasSelect, [], "Tidak ada kelas tersedia");
+        namaKelasSelect.disabled = true;
+      }
+    });
+
+    function populateSelect(selectElement, items, defaultText) {
+      selectElement.innerHTML = `<option value="" disabled selected>${defaultText}</option>`;
       items.forEach(item => {
         const opt = document.createElement("option");
         opt.value = item;
         opt.textContent = item;
-        select.appendChild(opt);
+        selectElement.appendChild(opt);
+      });
+    }
+
+    function setupDropzone() {
+      dropzone.addEventListener("click", (e) => {
+        if (e.target !== removeFileBtn && !removeFileBtn.contains(e.target)) {
+          fileInput.click();
+        }
       });
 
-      select.required = true;
+      ["dragenter", "dragover"].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropzone.classList.add("drag-active");
+        }, false);
+      });
+
+      ["dragleave", "drop"].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove("drag-active");
+        }, false);
+      });
+
+      dropzone.addEventListener("drop", (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length) handleFileSelect(files[0]);
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files.length) handleFileSelect(e.target.files[0]);
+      });
+
+      removeFileBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        resetFileSelection();
+      });
     }
 
-    function sanitizeFileName(name) {
-      return name.replace(/[^a-zA-Z0-9_\-\.]/g, "_");
-    }
-
-    function validateFile(file) {
-      if (!file) return "Belum ada file";
-      if (!ALLOWED_TYPES.includes(file.type)) return "Tipe file tidak diperbolehkan";
-      if (file.size > MAX_FILE_SIZE) return "Ukuran file terlalu besar (max 20MB)";
-      return null;
-    }
-
-    function validateForm(formData) {
-      if (!formData.nama) return "Nama Siswa";
-      if (!formData.kelas) return "Kelas";
-      if (!formData.namaKelas) return "Nama Kelas";
-      if (!formData.mapel) return "Mapel";
-      if (!formData.tugas) return "Jenis Tugas";
-      if (!formData.file) return "File";
-      return null;
-    }
-
-    // ======= INIT DROPDOWN =======
-    function initDropdowns(data) {
-      namaKelasMap = data.namaKelasMap || {};
-      fillSelect("kelas", Object.keys(namaKelasMap).sort(), "-- Pilih kelas --");
-      fillSelect("mapel", (data.mapel || []).sort(), "-- Pilih mapel --");
-      fillSelect("tugas", (data.tugas || []).sort(), "-- Pilih jenis tugas --");
-      fillSelect("namaKelas", [], "-- Pilih nama kelas --");
-      
-      showSpinner("kelas", false);
-      showSpinner("mapel", false);
-      showSpinner("tugas", false);
-      dataReady = true;
-
-      // Tutup Swal Loading setelah data dropdown siap
-      Swal.close();
-    }
-
-    // ======= EVENT LISTENERS =======
-    document.getElementById("kelas").addEventListener("change", function () {
-      showSpinner("namaKelas", true);
-      fillSelect("namaKelas", namaKelasMap[this.value] || [], "-- Pilih nama kelas --");
-      showSpinner("namaKelas", false);
-    });
-
-    document.getElementById("file").addEventListener("change", function () {
-      const file = this.files[0];
-      const msg = validateFile(file);
-      const label = document.getElementById("fileLabel");
-
-      if (msg) {
-        Swal.fire({
-          icon: "error",
-          title: msg,
-          confirmButtonColor: "#4a90e2"
-        });
-        this.value = "";
-        label.textContent = "Belum ada file";
-      } else {
-        label.textContent = file.name;
+    function handleFileSelect(file) {
+      const maxSize = 20 * 1024 * 1024; // 20MB
+      if (file.size > maxSize) {
+        Swal.fire("Ukuran Terlalu Besar", "Ukuran file maksimal adalah 20MB.", "warning");
+        return;
       }
-    });
 
-    // ======= FORM SUBMIT =======
-    document.getElementById("tugasForm").addEventListener("submit", function (e) {
+      selectedFile = file;
+      fileNameEl.textContent = file.name;
+      fileSizeEl.textContent = formatBytes(file.size);
+
+      dropzoneContent.classList.add("hidden");
+      fileInfo.classList.remove("hidden");
+      fileInfo.classList.add("flex");
+    }
+
+    function resetFileSelection() {
+      selectedFile = null;
+      fileInput.value = "";
+      dropzoneContent.classList.remove("hidden");
+      fileInfo.classList.add("hidden");
+      fileInfo.classList.remove("flex");
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return "0 Bytes";
+      const k = 1024;
+      const sizes = ["Bytes", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    }
+
+    form.addEventListener("submit", function (e) {
       e.preventDefault();
 
-      if (!dataReady) {
-        Swal.fire("Sabar...", "Data dropdown sedang dimuat.", "warning");
-        return;
-      }
-
-      const submitBtn = document.getElementById("submitBtn");
-      const file = document.getElementById("file").files[0];
       const formData = {
         nama: document.getElementById("nama").value.trim(),
-        kelas: document.getElementById("kelas").value,
-        namaKelas: document.getElementById("namaKelas").value,
-        mapel: document.getElementById("mapel").value,
-        tugas: document.getElementById("tugas").value,
-        file
+        kelas: kelasSelect.value,
+        namaKelas: namaKelasSelect.value,
+        mapel: mapelSelect.value,
+        materi: document.getElementById("materi").value.trim(),
+        tugas: tugasSelect.value
       };
 
-      const invalidField = validateForm(formData);
-      if (invalidField) {
-        Swal.fire({
-          icon: "warning",
-          title: "Form belum lengkap",
-          text: invalidField + " belum diisi!",
-          confirmButtonColor: "#4a90e2"
-        });
-        return;
-      }
+      // Validasi Form
+      if (!formData.nama) return showWarning("Nama Siswa belum diisi!");
+      if (!formData.kelas) return showWarning("Tingkat Kelas belum dipilih!");
+      if (!formData.namaKelas) return showWarning("Nama Kelas belum dipilih!");
+      if (!formData.mapel) return showWarning("Mata Pelajaran belum dipilih!");
+      if (!formData.materi) return showWarning("Bab / Materi belum diisi!");
+      if (!formData.tugas) return showWarning("Jenis Tugas belum dipilih!");
+      if (!selectedFile) return showWarning("File Tugas belum diunggah!");
 
-      submitBtn.disabled = true;
+      setLoading(true);
 
-      Swal.fire({
-        title: "Menyiapkan upload...",
-        html: '<progress id="progressBar" value="0" max="100" style="width:100%"></progress><div id="progressPercent" style="text-align:center;margin-top:5px;">0%</div>',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
-
-      const progressBar = document.getElementById("progressBar");
-      const progressText = document.getElementById("progressPercent");
       const reader = new FileReader();
-      let simulatedProgress = 50;
-
-      reader.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const val = Math.round((e.loaded / e.total) * 50);
-          progressBar.value = val;
-          progressText.innerText = val + "%";
-        }
-      };
-
-      reader.onload = () => {
-        const base64Data = reader.result.split(",")[1];
-        const safeFileName = sanitizeFileName(file.name);
-
-        const interval = setInterval(() => {
-          if (simulatedProgress < 90) {
-            simulatedProgress += Math.floor(Math.random() * 3) + 1;
-            if (simulatedProgress > 90) simulatedProgress = 90;
-            progressBar.value = simulatedProgress;
-            progressText.innerText = simulatedProgress + "%";
-          } else {
-            clearInterval(interval);
+      reader.onload = function (event) {
+        const rawData = event.target.result.split(",")[1];
+        
+        const payload = {
+          ...formData,
+          file: {
+            name: selectedFile.name,
+            type: selectedFile.type || "application/octet-stream",
+            data: rawData
           }
-        }, 200);
+        };
 
         google.script.run
-          .withSuccessHandler((res) => {
-            clearInterval(interval);
-            submitBtn.disabled = false;
-            handleUploadResult(res);
-          })
-          .withFailureHandler((err) => {
-            clearInterval(interval);
-            submitBtn.disabled = false;
-            Swal.fire("Gagal!", "Terjadi kesalahan server: " + err.message, "error");
-          })
-          .uploadFile({
-            ...formData,
-            file: {
-              name: safeFileName,
-              type: file.type,
-              data: base64Data
-            }
-          });
+          .withSuccessHandler(onUploadSuccess)
+          .withFailureHandler(onUploadError)
+          .uploadFile(payload);
       };
 
-      reader.readAsDataURL(file);
+      reader.onerror = function () {
+        setLoading(false);
+        Swal.fire("Gagal", "Gagal membaca berkas file.", "error");
+      };
+
+      reader.readAsDataURL(selectedFile);
     });
 
-    function handleUploadResult(res) {
+    function onUploadSuccess(res) {
+      setLoading(false);
       if (res.status === "success") {
-        const msg = res.replaced
-          ? "File diperbarui. Tugas berhasil diperbarui."
-          : "Tugas berhasil diupload.";
-
-        Swal.fire("Sukses!", msg, "success");
-        resetFormCompletely();
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil Terkirim!",
+          text: res.replaced 
+            ? "Tugas sebelumnya dengan kategori yang sama berhasil diperbarui." 
+            : "Tugas Anda telah berhasil dikirim ke guru.",
+          confirmButtonColor: "#4f46e5"
+        });
+        
+        // Reset Form
+        form.reset();
+        resetFileSelection();
+        populateSelect(namaKelasSelect, [], "Pilih Tingkat Kelas dulu");
+        namaKelasSelect.disabled = true;
       } else {
-        Swal.fire("Gagal!", res.message, "error");
+        Swal.fire("Gagal", res.message || "Terjadi kesalahan saat menyimpan tugas.", "error");
       }
     }
 
-    // ======= RESET FORM =======
-    function resetFormCompletely() {
-      const form = document.getElementById("tugasForm");
-
-      // Reset semua input text/email
-      form.querySelectorAll("input[type=text], input[type=email]").forEach(input => input.value = "");
-
-      // Reset semua select dropdown
-      form.querySelectorAll("select").forEach(select => {
-        select.selectedIndex = 0;
-      });
-
-      fillSelect("namaKelas", [], "-- Pilih nama kelas --");
-
-      // Reset file input
-      const fileInput = document.getElementById("file");
-      fileInput.value = "";
-      document.getElementById("fileLabel").textContent = "Belum ada file";
-
-      // Reset spinner/loading
-      form.querySelectorAll(".spinner").forEach(spinner => spinner.style.display = "none");
-      form.querySelectorAll(".loadingText").forEach(text => text.style.display = "none");
+    function onUploadError(err) {
+      setLoading(false);
+      Swal.fire("Server Error", err.message || "Gagal terhubung dengan server Apps Script.", "error");
     }
 
-    // ======= START: LOAD DROPDOWN =======
-    showSpinner("kelas", true);
-    showSpinner("mapel", true);
-    showSpinner("tugas", true);
-    showSpinner("namaKelas", false);
+    function showWarning(msg) {
+      Swal.fire({
+        icon: "warning",
+        title: "Perhatian",
+        text: msg,
+        confirmButtonColor: "#4f46e5"
+      });
+    }
 
-    // Tampilkan Swal loading saat pertama load
-    Swal.fire({
-      title: 'Memuat form...',
-      html: 'Harap tunggu sebentar',
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading()
-    });
+    function setLoading(isLoading) {
+      submitBtn.disabled = isLoading;
+      if (isLoading) {
+        submitBtnText.textContent = "Mengunggah Tugas...";
+        submitBtn.querySelector("i").className = "fa-solid fa-spinner fa-spin";
+      } else {
+        submitBtnText.textContent = "Kirim Tugas";
+        submitBtn.querySelector("i").className = "fa-solid fa-paper-plane";
+      }
+    }
 
-    // Ambil data dropdown dari server Apps Script
-    google.script.run
-      .withSuccessHandler(initDropdowns)
-      .withFailureHandler((err) => {
-        Swal.fire("Error", "Gagal memuat data dropdown: " + err.message, "error");
-      })
-      .getDropdownData();
+    function showStaticMessage(msg, type) {
+      const banner = document.getElementById("statusBanner");
+      banner.classList.remove("hidden", "bg-red-100", "text-red-700", "bg-yellow-100", "text-yellow-700");
+      if (type === "error") {
+        banner.classList.add("bg-red-100", "text-red-700");
+        banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-lg"></i> <span>${msg}</span>`;
+      }
+    }
   </script>
 </body>
 </html>
