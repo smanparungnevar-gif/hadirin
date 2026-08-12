@@ -234,6 +234,13 @@
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
     }
 
+    button.submit-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
     /* Form Header */
     .form-header {
       display: flex;
@@ -288,18 +295,6 @@
       0% { transform: translateY(0) rotate(0deg); }
       50% { transform: translateY(18px) rotate(45deg); }
       100% { transform: translateY(0) rotate(0deg); }
-    }
-
-    /* Optional: light streak overlay */
-    .form-header::after {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 70%);
-      pointer-events: none;
     }
 
     /* Header Top */
@@ -381,12 +376,6 @@
           <input type="text" id="nama" placeholder="Masukkan nama lengkap">
         </div>
 
-        <!-- Email Siswa -->
-        <label>📧 Email Siswa</label>
-        <div class="field-wrapper">
-          <input type="email" id="email" placeholder="Masukkan email aktif">
-        </div>
-
         <!-- Dropdown Kelas -->
         <label>🏢 Tingkat Kelas</label>
         <div class="field-wrapper">
@@ -440,13 +429,62 @@
         <br>
 
         <!-- Submit Button -->
-        <button type="submit" class="submit-btn">⬆️ Upload</button>
+        <button type="submit" id="submitBtn" class="submit-btn">⬆️ Upload</button>
       </form>
     </div>
   </div>
 
   <!-- ===================== JS ===================== -->
   <script>
+    // ======= FALLBACK MOCK GOOGLE SCRIPT RUN (Untuk Preview / Browser Lokal) =======
+    if (typeof google === "undefined" || !google.script || !google.script.run) {
+      window.google = window.google || {};
+      window.google.script = window.google.script || {};
+      
+      window.google.script.run = (function () {
+        let successCb = null;
+        let failureCb = null;
+
+        const runner = {
+          withSuccessHandler: function (cb) {
+            successCb = cb;
+            return runner;
+          },
+          withFailureHandler: function (cb) {
+            failureCb = cb;
+            return runner;
+          },
+          getDropdownData: function () {
+            setTimeout(() => {
+              if (successCb) {
+                successCb({
+                  namaKelasMap: {
+                    "X": ["X-IPA-1", "X-IPA-2", "X-IPS-1"],
+                    "XI": ["XI-IPA-1", "XI-IPS-1", "XI-IPS-2"],
+                    "XII": ["XII-IPA-1", "XII-IPS-1"]
+                  },
+                  mapel: ["Matematika", "Bahasa Indonesia", "Bahasa Inggris", "Fisika"],
+                  tugas: ["Tugas Harian", "UTS", "UAS", "Praktikum"]
+                });
+              }
+            }, 600);
+          },
+          uploadFile: function (data) {
+            setTimeout(() => {
+              if (successCb) {
+                successCb({
+                  status: "success",
+                  url: "https://drive.google.com",
+                  replaced: false
+                });
+              }
+            }, 1200);
+          }
+        };
+        return runner;
+      })();
+    }
+
     // ======= JS UTILITY & KONSTANTA =======
     const MAX_FILE_SIZE = 20 * 1024 * 1024; 
     const ALLOWED_TYPES = [
@@ -510,7 +548,6 @@
 
     function validateForm(formData) {
       if (!formData.nama) return "Nama Siswa";
-      if (!formData.email) return "Email Siswa";
       if (!formData.kelas) return "Kelas";
       if (!formData.namaKelas) return "Nama Kelas";
       if (!formData.mapel) return "Mapel";
@@ -521,15 +558,19 @@
 
     // ======= INIT DROPDOWN =======
     function initDropdowns(data) {
-      namaKelasMap = data.namaKelasMap;
+      namaKelasMap = data.namaKelasMap || {};
       fillSelect("kelas", Object.keys(namaKelasMap).sort(), "-- Pilih kelas --");
-      fillSelect("mapel", data.mapel.sort(), "-- Pilih mapel --");
-      fillSelect("tugas", data.tugas.sort(), "-- Pilih jenis tugas --");
+      fillSelect("mapel", (data.mapel || []).sort(), "-- Pilih mapel --");
+      fillSelect("tugas", (data.tugas || []).sort(), "-- Pilih jenis tugas --");
       fillSelect("namaKelas", [], "-- Pilih nama kelas --");
+      
       showSpinner("kelas", false);
       showSpinner("mapel", false);
       showSpinner("tugas", false);
       dataReady = true;
+
+      // Tutup Swal Loading setelah data dropdown siap
+      Swal.close();
     }
 
     // ======= EVENT LISTENERS =======
@@ -561,10 +602,15 @@
     document.getElementById("tugasForm").addEventListener("submit", function (e) {
       e.preventDefault();
 
+      if (!dataReady) {
+        Swal.fire("Sabar...", "Data dropdown sedang dimuat.", "warning");
+        return;
+      }
+
+      const submitBtn = document.getElementById("submitBtn");
       const file = document.getElementById("file").files[0];
       const formData = {
         nama: document.getElementById("nama").value.trim(),
-        email: document.getElementById("email").value.trim(),
         kelas: document.getElementById("kelas").value,
         namaKelas: document.getElementById("namaKelas").value,
         mapel: document.getElementById("mapel").value,
@@ -582,6 +628,8 @@
         });
         return;
       }
+
+      submitBtn.disabled = true;
 
       Swal.fire({
         title: "Menyiapkan upload...",
@@ -620,10 +668,14 @@
 
         google.script.run
           .withSuccessHandler((res) => {
-            progressBar.value = 100;
-            progressText.innerText = "100%";
-            Swal.close();
+            clearInterval(interval);
+            submitBtn.disabled = false;
             handleUploadResult(res);
+          })
+          .withFailureHandler((err) => {
+            clearInterval(interval);
+            submitBtn.disabled = false;
+            Swal.fire("Gagal!", "Terjadi kesalahan server: " + err.message, "error");
           })
           .uploadFile({
             ...formData,
@@ -639,10 +691,6 @@
     });
 
     function handleUploadResult(res) {
-      document.getElementById("progressBar").value = 100;
-      document.getElementById("progressPercent").innerText = "100%";
-      Swal.close();
-
       if (res.status === "success") {
         const msg = res.replaced
           ? "File diperbarui. Tugas berhasil diperbarui."
@@ -650,7 +698,6 @@
 
         Swal.fire("Sukses!", msg, "success");
         resetFormCompletely();
-        fillSelect("namaKelas", [], "-- Pilih nama kelas --");
       } else {
         Swal.fire("Gagal!", res.message, "error");
       }
@@ -665,15 +712,17 @@
 
       // Reset semua select dropdown
       form.querySelectorAll("select").forEach(select => {
-        select.selectedIndex = 0; // kembalikan ke placeholder
+        select.selectedIndex = 0;
       });
+
+      fillSelect("namaKelas", [], "-- Pilih nama kelas --");
 
       // Reset file input
       const fileInput = document.getElementById("file");
       fileInput.value = "";
       document.getElementById("fileLabel").textContent = "Belum ada file";
 
-      // Reset spinner/loading jika ada
+      // Reset spinner/loading
       form.querySelectorAll(".spinner").forEach(spinner => spinner.style.display = "none");
       form.querySelectorAll(".loadingText").forEach(text => text.style.display = "none");
     }
@@ -684,7 +733,7 @@
     showSpinner("tugas", true);
     showSpinner("namaKelas", false);
 
-    // ======= Tampilkan Swal loading saat pertama load =======
+    // Tampilkan Swal loading saat pertama load
     Swal.fire({
       title: 'Memuat form...',
       html: 'Harap tunggu sebentar',
@@ -692,16 +741,13 @@
       didOpen: () => Swal.showLoading()
     });
 
-    // ======= Tutup Swal =======
-    window.addEventListener('DOMContentLoaded', () => {
-      // Sedikit delay agar animasi fadeIn terlihat smooth
-      setTimeout(() => {
-        Swal.close();
-      }, 500); // 500ms bisa diubah sesuai kebutuhan
-    });
-
-    google.script.run.withSuccessHandler(initDropdowns).getDropdownData();
+    // Ambil data dropdown dari server Apps Script
+    google.script.run
+      .withSuccessHandler(initDropdowns)
+      .withFailureHandler((err) => {
+        Swal.fire("Error", "Gagal memuat data dropdown: " + err.message, "error");
+      })
+      .getDropdownData();
   </script>
 </body>
 </html>
-
