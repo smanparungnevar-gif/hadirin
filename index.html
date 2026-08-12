@@ -396,6 +396,7 @@
           <span class="loadingText" id="loadingTextNamaKelas">Loading...</span>
         </div>
 
+        <!-- ... existing code ... -->
         <!-- Dropdown Mapel -->
         <label>📚 Mata Pelajaran</label>
         <div class="field-wrapper">
@@ -406,26 +407,52 @@
           <span class="loadingText" id="loadingTextMapel">Loading...</span>
         </div>
 
+        <!-- Input Bab / Materi -->
+        <label>📖 Bab / Materi</label>
+        <div class="field-wrapper">
+          <input type="text" id="materi" placeholder="Contoh: Bab 1 - Persamaan Kuadrat">
+        </div>
+
         <!-- Dropdown Tugas -->
         <label>📝 Jenis Tugas</label>
-        <div class="field-wrapper">
-          <select id="tugas">
-            <option value="" disabled selected>-- Pilih --</option>
-          </select>
-          <div class="spinner" id="spinnerTugas"></div>
-          <span class="loadingText" id="loadingTextTugas">Loading...</span>
-        </div>
+<!-- ... existing code ... -->
+    function validateForm(formData) {
+      if (!formData.nama) return "Nama Siswa";
+      if (!formData.kelas) return "Kelas";
+      if (!formData.namaKelas) return "Nama Kelas";
+      if (!formData.mapel) return "Mapel";
+      if (!formData.materi) return "Bab / Materi";
+      if (!formData.tugas) return "Jenis Tugas";
+      if (!formData.file) return "File";
+      return null;
+    }
 
-        <!-- File Input -->
-        <label>📎 Pilih File</label>
-        <div class="file-input">
-          <span id="fileLabel">Belum ada file</span>
-          <button type="button" onclick="document.getElementById('file').click()">
-            Browse
-          </button>
-          <input type="file" id="file">
-        </div>
+    // ======= INIT DROPDOWN =======
+<!-- ... existing code ... -->
+    // ======= FORM SUBMIT =======
+    document.getElementById("tugasForm").addEventListener("submit", function (e) {
+      e.preventDefault();
 
+      if (!dataReady) {
+        Swal.fire("Sabar...", "Data dropdown sedang dimuat.", "warning");
+        return;
+      }
+
+      const submitBtn = document.getElementById("submitBtn");
+      const file = document.getElementById("file").files[0];
+      const formData = {
+        nama: document.getElementById("nama").value.trim(),
+        kelas: document.getElementById("kelas").value,
+        namaKelas: document.getElementById("namaKelas").value,
+        mapel: document.getElementById("mapel").value,
+        materi: document.getElementById("materi").value.trim(),
+        tugas: document.getElementById("tugas").value,
+        file
+      };
+
+      const invalidField = validateForm(formData);
+<!-- ... existing code ... -->
+`
         <br>
 
         <!-- Submit Button -->
