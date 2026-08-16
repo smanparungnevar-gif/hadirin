@@ -3777,6 +3777,90 @@ untuk Efisiensi & Integrasi SMAN 1 Parung</p>
             });
         }
 
+        // FUNGSI BARU (sebelumnya dipanggil di 3 tempat tapi TIDAK PERNAH
+        // didefinisikan, sehingga memicu error "renderWaliJurnal is not
+        // defined" saat tab Jurnal dibuka oleh Wali Kelas). Tidak mengubah
+        // fungsi/alur lain yang sudah berjalan (saveJurnal, getJurnalByClass,
+        // dsb tetap sama persis).
+        //
+        // Mengisi panel rekapitulasi (Total Tatap Muka, Guru Pengajar Aktif,
+        // Materi Pembelajaran Tercatat) serta daftar histori jurnal kelas
+        // binaan Wali Kelas pada tab "waliJurnalTab", dengan filter tanggal
+        // (wkJurnalFilterFromDate/ToDate) dan pencarian guru/materi
+        // (wkJurnalFilterSearch) sesuai input pada panel filter.
+        function renderWaliJurnal() {
+            const targetClass = currentUser.class_or_nip;
+            const fromDate = document.getElementById('wkJurnalFilterFromDate').value;
+            const toDate = document.getElementById('wkJurnalFilterToDate').value;
+            const searchTerm = document.getElementById('wkJurnalFilterSearch').value.trim().toLowerCase();
+
+            const classSub = document.getElementById('wkJurnalClassSub');
+            if (classSub) classSub.textContent = `Laporan jurnal pengajaran kelas ${targetClass}`;
+
+            showLoading(true);
+            runBackend('getJurnalByClass', [targetClass], function(jurnalList) {
+                showLoading(false);
+
+                let filtered = jurnalList || [];
+
+                if (fromDate) {
+                    filtered = filtered.filter(j => j.tanggal >= fromDate);
+                }
+                if (toDate) {
+                    filtered = filtered.filter(j => j.tanggal <= toDate);
+                }
+                if (searchTerm) {
+                    filtered = filtered.filter(j =>
+                        (j.guru || '').toLowerCase().includes(searchTerm) ||
+                        (j.materi || '').toLowerCase().includes(searchTerm)
+                    );
+                }
+
+                // Urutkan dari pertemuan terbaru
+                filtered.sort((a, b) => {
+                    if (a.tanggal === b.tanggal) return (b.id || '').localeCompare(a.id || '');
+                    return b.tanggal.localeCompare(a.tanggal);
+                });
+
+                const guruAktifSet = new Set(filtered.map(j => (j.guru || '').trim()).filter(Boolean));
+                const materiTercatatCount = filtered.filter(j => !(j.materi || '').startsWith('GURU TIDAK HADIR')).length;
+
+                document.getElementById('wkJurnalCountPertemuan').textContent = filtered.length;
+                document.getElementById('wkJurnalCountGuru').textContent = guruAktifSet.size;
+                document.getElementById('wkJurnalCountMateri').textContent = materiTercatatCount;
+
+                const container = document.getElementById('wkJurnalList');
+                container.innerHTML = '';
+
+                if (filtered.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-6">Belum ada data jurnal kelas untuk periode/pencarian ini.</p>';
+                    return;
+                }
+
+                filtered.forEach(j => {
+                    const isTidakHadir = (j.materi || '').startsWith('GURU TIDAK HADIR');
+                    const badgeClass = isTidakHadir ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600';
+                    const badgeLabel = isTidakHadir ? 'Guru Tidak Hadir' : 'Tatap Muka';
+
+                    container.innerHTML += `
+                        <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
+                            <div class="flex justify-between items-start gap-2">
+                                <div class="truncate">
+                                    <h5 class="font-bold text-slate-800 text-xs truncate">${j.guru}</h5>
+                                    <p class="text-[9px] text-slate-400">${j.mapel || '-'} | ${formatTanggalIndo(j.tanggal)} | Jam Ke-${j.jam_ke || '-'}</p>
+                                </div>
+                                <span class="px-2 py-1 ${badgeClass} font-extrabold text-[9px] rounded-full flex-shrink-0">${badgeLabel}</span>
+                            </div>
+                            <p class="text-[10px] text-slate-600"><span class="font-bold text-slate-500">Materi:</span> ${j.materi || '-'}</p>
+                            ${j.tugas ? `<p class="text-[10px] text-slate-600"><span class="font-bold text-slate-500">Tugas:</span> ${j.tugas}</p>` : ''}
+                            ${j.catatan ? `<p class="text-[10px] text-slate-600"><span class="font-bold text-slate-500">Catatan:</span> ${j.catatan}</p>` : ''}
+                            <p class="text-[9px] text-slate-400">Jam Masuk-Keluar: ${j.jam_masuk || '-'} s/d ${j.jam_keluar || '-'} | Pendampingan: ${j.pendampingan || '-'}</p>
+                        </div>
+                    `;
+                });
+            });
+        }
+
         function renderWaliGuruWaliStudents() {
             const targetWaliName = currentUser.name;
             document.getElementById('wgNamaWali').textContent = targetWaliName;
